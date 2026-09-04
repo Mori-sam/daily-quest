@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>日常调教任务面板</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+  :root {
+    --bg: #0a0e17; --panel: #121826; --panel-2: #1a2233; --border: #2a3548;
+    --text: #e0e6f0; --muted: #8b9bb4; --neon-green: #00ff9f; --neon-cyan: #00e5ff;
+    --neon-orange: #ff9f43; --neon-red: #ff4757; --neon-pink: #ff6b9d; --gold: #ffd700;
+    --copper: #cd7f32; --silver: #c0c0c0; --platinum: #e5e4e2; --jade: #00a86b;
+    --amethyst: #9966cc; --diamond: #b9f2ff; --master: #ff6b35; --king: #ff2a6d; --god: #fff0a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(160deg, #070b12, #0f1520 50%, #0a0e17);
+    min-height: 100vh; display: flex; justify-content: center; padding: 16px 10px 40px;
+    font-family: 'Noto Sans SC', system-ui, sans-serif; color: var(--text); line-height: 1.45;
+  }
+  .panel {
+    width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 0 0 1px rgba(0,229,255,0.08), 0 12px 40px rgba(0,0,0,0.55); overflow: hidden;
+  }
+  .header {
+    background: linear-gradient(180deg, #1a2438, #121826); padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border); position: relative;
+  }
+  .header::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent); opacity: 0.5;
+  }
+  .date-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .date { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--neon-cyan); }
+  .rating {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3);
+    color: var(--neon-cyan); padding: 2px 8px; border-radius: 20px;
+  }
+  .rating span { font-weight: 700; }
+  .greeting { font-size: 14px; font-weight: 500; }
+  .greeting em { color: var(--neon-pink); font-style: normal; }
+  .rank-bar {
+    margin-top: 10px; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border);
+  }
+  .rank-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .rank-name { font-size: 14px; font-weight: 700; }
+  .rank-points { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+  .rank-progress { height: 6px; background: #0d121c; border-radius: 3px; overflow: hidden; }
+  .rank-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .rank-sub { font-size: 11px; color: var(--muted); margin-top: 4px; text-align: right; }
+  .section { padding: 12px 14px; border-bottom: 1px solid rgba(42,53,72,0.6); }
+  .section-title {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+  .section-title.clickable { cursor: pointer; user-select: none; }
+  .section-title .toggle { margin-left: auto; font-size: 12px; color: var(--neon-cyan); }
+  .quest {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 11px; margin-bottom: 7px; display: grid; grid-template-columns: 20px 1fr;
+    gap: 6px 9px; cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  .quest:last-child { margin-bottom: 0; }
+  .quest:hover { border-color: rgba(0,229,255,0.35); }
+  .quest.done {
+    border-color: rgba(0,255,159,0.4);
+    background: linear-gradient(135deg, rgba(0,255,159,0.07), var(--panel-2));
+  }
+  .quest.optional { border-style: dashed; }
+  .checkbox { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--muted); }
+  .quest.done .checkbox { color: var(--neon-green); }
+  .quest-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .quest.done .quest-name { color: var(--neon-green); }
+  .quest-desc { font-size: 11.5px; color: var(--muted); margin-bottom: 4px; }
+  .quest-reward { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--neon-orange); }
+  .quest.done .quest-reward { color: var(--neon-green); }
+  .quest-pts { font-size: 10px; color: var(--neon-cyan); margin-top: 2px; }
+  .tag-optional {
+    font-size: 9px; background: rgba(0,229,255,0.12); color: var(--neon-cyan);
+    padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+  }
+  .weekly-card {
+    background: linear-gradient(135deg, rgba(255,159,67,0.08), var(--panel-2));
+    border: 1px solid rgba(255,159,67,0.35); border-radius: 8px; padding: 12px; margin-bottom: 10px;
+  }
+  .weekly-card:last-child { margin-bottom: 0; }
+  .weekly-title { font-size: 13.5px; font-weight: 600; color: var(--neon-orange); margin-bottom: 4px; }
+  .weekly-desc { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .weekly-rules {
+    font-size: 11px; color: var(--text); background: rgba(0,0,0,0.25);
+    border-radius: 6px; padding: 8px; margin-bottom: 10px; line-height: 1.5;
+  }
+  .weekly-rules b { color: var(--neon-orange); }
+  .weekly-status {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px;
+  }
+  .ws-pending { background: rgba(255,159,67,0.15); color: var(--neon-orange); }
+  .ws-done { background: rgba(0,255,159,0.15); color: var(--neon-green); }
+  .ws-fail { background: rgba(255,71,87,0.15); color: var(--neon-red); }
+  .weekly-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .wbtn {
+    font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  .wbtn:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .ultimate {
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), var(--panel-2));
+    border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 12px;
+  }
+  .ultimate-title { font-size: 14px; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+  .ultimate-desc { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .ultimate-status {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 6px 10px; border-radius: 6px; display: inline-block; margin-bottom: 8px;
+  }
+  .us-pending { background: rgba(255,215,0,0.12); color: var(--gold); }
+  .us-done { background: rgba(0,255,159,0.15); color: var(--neon-green); }
+  .timed {
+    background: linear-gradient(135deg, rgba(255,107,157,0.08), var(--panel-2));
+    border: 1px solid rgba(255,107,157,0.4); border-radius: 8px; padding: 11px 12px;
+  }
+  .timed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .timed-name { font-size: 13.5px; font-weight: 600; color: var(--neon-pink); }
+  .countdown {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+    color: var(--neon-pink); background: rgba(255,107,157,0.15);
+    padding: 2px 7px; border-radius: 4px; min-width: 72px; text-align: center;
+  }
+  .countdown.finished { color: var(--neon-green); background: rgba(0,255,159,0.15); }
+  .timed-desc { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
+  .timed-pts { font-size: 11px; color: var(--neon-cyan); margin-bottom: 6px; }
+  .timed-progress-text { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+  .progress-bar {
+    height: 7px; background: #0d121c; border-radius: 4px; overflow: hidden;
+    border: 1px solid rgba(255,107,157,0.25);
+  }
+  .progress-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, #ff6b9d, #ff9f43);
+    border-radius: 4px; transition: width 0.6s linear;
+  }
+  .progress-labels {
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 3px;
+  }
+  .timed-actions { margin-top: 8px; display: flex; gap: 6px; }
+  .tbtn {
+    flex: 1; font-size: 11px; padding: 6px 0; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  .tbtn.success:hover { border-color: var(--neon-green); color: var(--neon-green); }
+  .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .milestone {
+    margin-top: 10px; background: rgba(0,255,159,0.08); border: 1px solid rgba(0,255,159,0.3);
+    border-radius: 8px; padding: 10px; text-align: center;
+  }
+  .milestone.ready { background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.45); }
+  .milestone-title { font-size: 12px; font-weight: 600; color: var(--neon-green); margin-bottom: 4px; }
+  .milestone.ready .milestone-title { color: var(--gold); }
+  .milestone-count { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; }
+  .milestone-btn {
+    margin-top: 8px; width: 100%; font-size: 12px; padding: 7px; border-radius: 6px;
+    border: 1px solid var(--gold); background: rgba(255,215,0,0.15); color: var(--gold); cursor: pointer;
+  }
+  .milestone-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--border); color: var(--muted); background: var(--panel-2); }
+  .queue-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    background: var(--panel-2); border-radius: 6px; margin-bottom: 5px; cursor: pointer;
+  }
+  .queue-item.reward { border-left: 3px solid var(--neon-green); }
+  .queue-item.penalty { border-left: 3px solid var(--neon-orange); }
+  .queue-item.settled { opacity: 0.55; }
+  .status-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  }
+  .status-tag.wait { background: rgba(255,159,67,0.15); color: var(--neon-orange); }
+  .status-tag.exec { background: rgba(255,71,87,0.18); color: var(--neon-red); }
+  .status-tag.done { background: rgba(0,255,159,0.15); color: var(--neon-green); }
+  .status-tag.reward { background: rgba(0,255,159,0.15); color: var(--neon-green); }
+  .queue-text { font-size: 12px; flex: 1; }
+  .empty-queue { text-align: center; font-size: 12px; color: var(--muted); padding: 8px 0; font-style: italic; }
+  .achievements-wrap { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+  .achievements-wrap.open { max-height: 2800px; }
+  .achievements { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .badge {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px; text-align: center; position: relative;
+  }
+  .badge.unlocked { border-color: #b8860b; box-shadow: 0 0 8px rgba(255,215,0,0.1); }
+  .badge.locked { opacity: 0.55; }
+  .badge-icon { font-size: 16px; margin-bottom: 2px; }
+  .badge-name { font-size: 11px; font-weight: 600; color: var(--gold); margin-bottom: 2px; }
+  .badge.locked .badge-name { color: var(--muted); }
+  .badge-cond { font-size: 10px; color: var(--muted); line-height: 1.3; margin-bottom: 4px; }
+  .badge-levels {
+    display: flex; justify-content: center; gap: 3px; font-size: 9px; font-family: 'JetBrains Mono', monospace;
+  }
+  .lv { padding: 1px 4px; border-radius: 3px; background: #0d121c; color: #555; }
+  .lv.on-copper { background: rgba(205,127,50,0.3); color: var(--copper); }
+  .lv.on-silver { background: rgba(192,192,192,0.25); color: var(--silver); }
+  .lv.on-gold { background: rgba(255,215,0,0.25); color: var(--gold); }
+  .lv.on-plat { background: rgba(229,228,226,0.3); color: var(--platinum); }
+  .badge-claim {
+    margin-top: 5px; font-size: 10px; padding: 3px 6px; border-radius: 4px;
+    border: 1px solid var(--gold); background: rgba(255,215,0,0.12); color: var(--gold); cursor: pointer; width: 100%;
+  }
+  .daddy {
+    background: linear-gradient(180deg, #1a2438, #121826); padding: 12px 16px 10px; border-top: 1px solid var(--border);
+  }
+  .daddy-label { font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+  .daddy-text { font-size: 13px; color: var(--neon-cyan); font-weight: 500; min-height: 36px; }
+  .daddy-text::before { content: '“'; color: var(--muted); }
+  .daddy-text::after { content: '”'; color: var(--muted); }
+  .controls { padding: 10px 14px 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    flex: 1; min-width: 30%; font-size: 12px; font-weight: 500; padding: 8px 0;
+    border-radius: 6px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer;
+  }
+  .btn:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .btn.danger:hover { border-color: var(--neon-red); color: var(--neon-red); }
+  .footer-bar {
+    height: 3px; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-orange)); opacity: 0.7;
+  }
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px);
+    background: #1a2233; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+    padding: 9px 18px; border-radius: 8px; font-size: 12px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
+    justify-content: center; align-items: center; z-index: 200; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--gold); border-radius: 12px;
+    width: 100%; max-width: 360px; padding: 18px; box-shadow: 0 0 30px rgba(255,215,0,0.15);
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--gold); margin-bottom: 6px; text-align: center; }
+  .modal-desc { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 14px; }
+  .reward-option {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; font-size: 13px;
+  }
+  .reward-option:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .reward-option.selected { border-color: var(--gold); background: rgba(255,215,0,0.1); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .modal-btn {
+    flex: 1; padding: 9px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 13px;
+  }
+  .modal-btn.confirm { border-color: var(--gold); color: var(--gold); }
+  .modal-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="panel" id="app">
+  <div class="header">
+    <div class="date-row">
+      <div class="date" id="dateDisplay">—</div>
+      <div class="rating">昨日总评 <span id="yesterdayScore">—</span></div>
+    </div>
+    <div class="greeting">今天也要做个<em>乖孩子</em>。</div>
+    <div class="rank-bar">
+      <div class="rank-info">
+        <div class="rank-name" id="rankName">铜 · 10</div>
+        <div class="rank-points"><span id="totalPoints">0</span> pt</div>
+      </div>
+      <div class="rank-progress">
+        <div class="rank-fill" id="rankFill" style="width:0%; background: var(--copper);"></div>
+      </div>
+      <div class="rank-sub" id="rankSub">距离下一级还需 — pt</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>📋</span> 每日任务（必做扣分×1.75 / 可选不扣分）</div>
+    <div id="questList"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>📅</span> 每周必做</div>
+    <div class="weekly-card">
+      <div class="weekly-title">作业完成度汇报</div>
+      <div class="weekly-desc">每周自行上传 Canvas 截图向老公汇报作业进度与成绩。</div>
+      <div class="weekly-rules">
+        <b>已交、≥80%：</b>一顿好饭<br>
+        <b>已交、≤80%：</b>打手心<br>
+        <b>Passed Due &lt;80%：</b>屁股开大花<br>
+        <b>Passed Due &gt;80%：</b>屁股开花
+      </div>
+      <div class="weekly-status ws-pending" id="weeklyStatus">⏳ 本周待汇报</div>
+      <div class="weekly-btns">
+        <button class="wbtn" onclick="setWeekly('done80')">已交 ≥80%</button>
+        <button class="wbtn" onclick="setWeekly('doneLow')">已交 ≤80%</button>
+        <button class="wbtn" onclick="setWeekly('dueLow')">Passed Due &lt;80%</button>
+        <button class="wbtn" onclick="setWeekly('dueHigh')">Passed Due &gt;80%</button>
+        <button class="wbtn" onclick="setWeekly('reset')">重置</button>
+      </div>
+    </div>
+    <div class="weekly-card">
+      <div class="weekly-title">每周洗头（只需 1 次）</div>
+      <div class="weekly-desc">本周已完成 <span id="hairCount">0</span> / 1 次</div>
+      <div class="weekly-rules">
+        每次完成 <b>+12 pt</b><br>
+        周日23:59前未完成倒扣 <b>-20 pt</b>
+      </div>
+      <div class="weekly-btns">
+        <button class="wbtn" onclick="addHairWash()">+1 次洗头打卡</button>
+      </div>
+    </div>
+    <div class="weekly-card">
+      <div class="weekly-title">每周洗衣服（只需 1 次）</div>
+      <div class="weekly-desc">本周已完成 <span id="laundryCount">0</span> / 1 次</div>
+      <div class="weekly-rules">
+        完成 <b>+10 pt</b><br>
+        周日23:59前未完成倒扣 <b>-15 pt</b>
+      </div>
+      <div class="weekly-btns">
+        <button class="wbtn" onclick="addLaundry()">+1 次洗衣打卡</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>⏳</span> 限时挑战 · 3小时自动刷新（异地可用）</div>
+    <div class="timed">
+      <div class="timed-header">
+        <div class="timed-name" id="timedName">加载中...</div>
+        <div class="countdown" id="countdown">03:00:00</div>
+      </div>
+      <div class="timed-desc" id="timedDesc">—</div>
+      <div class="timed-pts">成功完成 +30 pt · 超时不扣分无惩罚</div>
+      <div class="timed-progress-text">本轮已进行 <span id="progressText">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-labels"><span>开始</span><span>3小时</span></div>
+      <div class="timed-actions">
+        <button class="tbtn success" id="successBtn" onclick="completeTimed()">标记挑战成功</button>
+      </div>
+    </div>
+    <div class="milestone" id="milestoneBox">
+      <div class="milestone-title">累计限时挑战成功</div>
+      <div class="milestone-count"><span id="timedCount">0</span> / 10</div>
+      <button class="milestone-btn" id="claimBtn" disabled onclick="openRewardModal('timed')">向老公提出自选奖励</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>👑</span> 终极挑战</div>
+    <div class="ultimate">
+      <div class="ultimate-title">减肥 40 斤</div>
+      <div class="ultimate-desc">长期目标。达成后请跟老公申请终极奖励。<br>本挑战不设置任何积分奖励或惩罚。</div>
+      <div class="ultimate-status us-pending" id="ultimateStatus">⏳ 进行中</div>
+      <div class="weekly-btns">
+        <button class="wbtn" onclick="completeUltimate()">标记已达成</button>
+        <button class="wbtn" onclick="resetUltimate()">重置</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>🎁</span> 奖励队列</div>
+    <div id="rewardList"><div class="empty-queue">——当前无待领取奖励——</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span>⚡</span> 惩罚队列</div>
+    <div id="penaltyList"><div class="empty-queue">——当前无待清算事项——</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title clickable" onclick="toggleAchievements()">
+      <span>🏅</span> 成就徽章墙（25）· 仅次日23:59解锁
+      <span class="toggle" id="achToggle">展开 ▾</span>
+    </div>
+    <div class="achievements-wrap" id="achWrap">
+      <div class="achievements" id="achievementList"></div>
+    </div>
+  </div>
+
+  <div class="daddy">
+    <div class="daddy-label">老公今日评语</div>
+    <div class="daddy-text" id="daddyComment">今天也要乖乖的。</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="manualSave()">保存进度</button>
+    <button class="btn danger" onclick="fullReset()">清空所有数据</button>
+  </div>
+  <div class="footer-bar"></div>
+</div>
+
+<div class="modal-overlay" id="rewardModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">向老公提出自选奖励</div>
+    <div class="modal-desc" id="modalDesc">选择一个你想要的奖励：</div>
+    <div id="rewardOptions"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeRewardModal()">取消</button>
+      <button class="modal-btn confirm" id="confirmRewardBtn" disabled onclick="confirmCustomReward()">确认选择</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'dsQuestPanel_PROD_v2';
+
+const RANK_DEFS = (() => {
+  const names = ['铜','银','金','白金','翡翠','紫水晶','金刚石','大师','王者','神'];
+  const colors = ['var(--copper)','var(--silver)','var(--gold)','var(--platinum)','var(--jade)','var(--amethyst)','var(--diamond)','var(--master)','var(--king)','var(--god)'];
+  let ranges = [], base = 300; // 原200再×1.5
+  for (let i = 0; i < 10; i++) { ranges.push(Math.round(base)); base *= 1.5; }
+  const tiers = []; let cum = 0;
+  names.forEach((name, ri) => {
+    const range = ranges[ri], step = range / 10;
+    for (let lv = 10; lv >= 1; lv--) {
+      tiers.push({ name, level: lv, min: Math.round(cum), max: Math.round(cum + step), color: colors[ri], display: `${name} · ${lv}` });
+      cum += step;
+    }
+  });
+  return tiers;
+})();
+
+const DAILY_QUESTS = [
+  { id: 'brush_am', name: '晨间刷牙打卡', desc: '起床后刷牙并上传带当天日期时间的自拍证明。', pts: 4, mandatory: true, reward: '+4pt · 未完成扣×1.75' },
+  { id: 'brush_pm', name: '晚间刷牙打卡', desc: '睡前刷牙并上传带当天日期时间的自拍证明。', pts: 4, mandatory: true, reward: '+4pt · 未完成扣×1.75' },
+  { id: 'water', name: '每日饮水（至少一瓶）', desc: '今日至少喝完一瓶水，可拍照打卡。', pts: 6, mandatory: true, reward: '+6pt · 未完成扣×1.75' },
+  { id: 'noon_report', name: '午间定时汇报', desc: '12:00–13:00 汇报当前位置 + 本餐吃饭量。', pts: 2, mandatory: true, reward: '+2pt · 未完成扣×1.75' },
+  { id: 'bath', name: '洗澡打卡', desc: '完成后上传出浴照片，照片需附上当日日期。', pts: 8, mandatory: true, reward: '+8pt · 未完成扣×1.75' },
+  { id: 'posture', name: '玄关姿态检查', desc: '每次进出家门前跪姿在全身镜前自拍一张作为证据（可不露脸）。', pts: 6, mandatory: false, reward: '可选 · 完成 +6pt，不完成不扣分' },
+  { id: 'outfit', name: '着装与道具携带', desc: '自行选择一个道具佩戴并上传佩戴照片。', pts: 10, mandatory: false, reward: '可选 · 完成 +10pt，不完成不扣分' }
+];
+
+const TIMED_POOL = [
+  { id: 'edge', name: '边缘控制 · 禁止高潮', desc: '3小时内禁止高潮。可边缘，临近时必须停下，并文字/语音汇报状态。' },
+  { id: 'hold', name: '憋尿耐力挑战', desc: '3小时内禁止排泄，保持正常活动，定时向老公汇报感觉。' },
+  { id: 'kneel', name: '视频跪姿训练', desc: '在视频通话中累计完成指定时长的跪姿（可分段）。' },
+  { id: 'plug', name: '居家佩戴道具', desc: '在家全程佩戴指定道具，期间保持在线随时接受抽查。' },
+  { id: 'ice', name: '冰块忍耐', desc: '按指令使用冰块进行指定部位忍耐，并实时文字描述感受。' },
+  { id: 'writing', name: '服从书写', desc: '手写指定服从语句并拍照上传（可不露脸）。' },
+  { id: 'voice', name: '语音汇报感受', desc: '定时用语音向老公详细汇报当前身体与心理状态。' },
+  { id: 'deny', name: '寸止反复练习', desc: '完成指定次数的寸止循环，每次汇报并等待下一步指令。' },
+  { id: 'posture_home', name: '居家姿态保持', desc: '在指定时间内保持规定姿势（跪/趴等），随时接受视频检查。' }
+];
+
+const HIGH_REWARDS = [
+  '52美金现金',
+  '让老公在家穿你指定的衣服',
+  '免除一次已有惩罚',
+  '额外加 80 积分',
+  '允许一次「撒娇特权」整天',
+  '老公亲自准备一次特别奖励',
+  '自由提出一个小愿望（需合理）',
+  '奖励一次美甲（手指）'
+];
+
+const SMALL_REWARDS = [
+  '额外加 15 积分',
+  '今晚可以提前 10 分钟休息',
+  '免除一次小违规口头警告',
+  '允许一次短时间自由聊天',
+  '获得一次「摸头杀」特权',
+  '今晚可以自己选一部电影一起看',
+  '额外加 20 积分',
+  '获得一次「撒娇 5 分钟」特权',
+  '今晚跪姿时间减少 5 分钟',
+  '允许一次「问一个问题」特权'
+];
+
+const ACHIEVEMENTS = [
+  { id: 'first_steps', name: '初来报到', cond: '完成每日任务', type: 'daily_total', thresholds: [3, 10, 25, 50] },
+  { id: 'mandatory_king', name: '必做之王', cond: '完成必做任务', type: 'mandatory_total', thresholds: [5, 15, 40, 80] },
+  { id: 'full_day', name: '全日勤勋章', cond: '单日必做全勤次数', type: 'full_day_count', thresholds: [1, 3, 7, 15] },
+  { id: 'optional_lover', name: '可选爱好者', cond: '完成可选任务', type: 'optional_total', thresholds: [3, 10, 25, 50] },
+  { id: 'both_optional', name: '双可选达人', cond: '单日完成两个可选', type: 'both_optional_count', thresholds: [1, 3, 7, 15] },
+  { id: 'brush_master', name: '洁牙达人', cond: '完成刷牙打卡', type: 'brush_total', thresholds: [5, 15, 40, 80] },
+  { id: 'bath_ritual', name: '沐浴仪式', cond: '完成洗澡打卡', type: 'bath_total', thresholds: [3, 10, 25, 50] },
+  { id: 'water_keeper', name: '补水使者', cond: '完成饮水打卡', type: 'water_total', thresholds: [3, 10, 25, 50] },
+  { id: 'report_on_time', name: '准时汇报', cond: '完成午间汇报', type: 'noon_total', thresholds: [3, 10, 25, 50] },
+  { id: 'posture_grace', name: '姿态优雅', cond: '完成玄关检查', type: 'posture_total', thresholds: [3, 10, 25, 50] },
+  { id: 'prop_user', name: '道具实践', cond: '完成道具佩戴', type: 'outfit_total', thresholds: [3, 10, 25, 50] },
+  { id: 'timed_rookie', name: '挑战新星', cond: '限时挑战成功', type: 'timed_total', thresholds: [3, 10, 25, 50] },
+  { id: 'timed_veteran', name: '十连勇者', cond: '累计限时成功次数', type: 'timed_total', thresholds: [10, 25, 50, 100] },
+  { id: 'hair_care', name: '秀发管理', cond: '洗头打卡次数', type: 'hair_total', thresholds: [2, 6, 15, 30] },
+  { id: 'laundry_star', name: '洗衣达人', cond: '洗衣打卡次数', type: 'laundry_total', thresholds: [2, 6, 15, 30] },
+  { id: 'homework_star', name: '优等生', cond: '作业≥80%次数', type: 'weekly_good_count', thresholds: [1, 3, 7, 15] },
+  { id: 'streak_runner', name: '坚持之光', cond: '连续活跃天数', type: 'streak', thresholds: [3, 7, 15, 30] },
+  { id: 'point_hunter', name: '积分猎人', cond: '累计积分', type: 'points', thresholds: [150, 450, 1200, 3000] },
+  { id: 'clean_record', name: '零惩罚日', cond: '必做全勤且无新惩罚的天数', type: 'clean_days', thresholds: [1, 3, 7, 15] },
+  { id: 'combo_clean', name: '洁净组合', cond: '同日洗澡+早晚刷牙次数', type: 'bath_brush_combo', thresholds: [1, 3, 7, 15] },
+  { id: 'rank_climber', name: '段位攀登者', cond: '达到的段位高度', type: 'rank_index', thresholds: [10, 30, 60, 90] },
+  { id: 'reward_collector', name: '奖励收藏家', cond: '领取奖励次数', type: 'reward_claimed', thresholds: [1, 3, 8, 20] },
+  { id: 'penalty_endurer', name: '惩罚承受者', cond: '结算惩罚次数', type: 'penalty_settled', thresholds: [1, 3, 8, 20] },
+  { id: 'early_bird', name: '晨间战士', cond: '完成晨间刷牙次数', type: 'brush_am_total', thresholds: [3, 10, 25, 50] },
+  { id: 'night_owl', name: '夜间守则', cond: '完成晚间刷牙次数', type: 'brush_pm_total', thresholds: [3, 10, 25, 50] }
+];
+
+const LEVEL_NAMES = ['铜', '银', '金', '白金'];
+const TIMED_DURATION = 3 * 60 * 60 * 1000;
+const TIMED_MILESTONE = 10;
+const HAIR_NEED = 1;
+const LAUNDRY_NEED = 1;
+const DEDUCT_MULTIPLIER = 1.75;
+
+let state = {
+  date: null, points: 0, yesterdayScore: '—',
+  quests: {}, weekly: 'pending', hairCount: 0, laundryCount: 0, hairWeek: null,
+  timedId: null, timedStart: null, timedSuccessThisRound: false, timedSuccessCount: 0,
+  ultimateDone: false,
+  stats: {
+    daily_total: 0, mandatory_total: 0, full_day_count: 0, optional_total: 0, both_optional_count: 0,
+    brush_total: 0, bath_total: 0, water_total: 0, noon_total: 0, posture_total: 0, outfit_total: 0,
+    timed_total: 0, hair_total: 0, laundry_total: 0, weekly_good_count: 0, streak: 0,
+    clean_days: 0, bath_brush_combo: 0, reward_claimed: 0, penalty_settled: 0,
+    brush_am_total: 0, brush_pm_total: 0
+  },
+  achProgress: {},
+  rewards: [], penalties: [],
+  streak: 0, lastActiveDate: null, lastDeductDate: null, cleanDayFlag: true
+};
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function weekKeyFromDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  return `${d.getFullYear()}-W${Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7)}`;
+}
+
+function getRankInfo() {
+  const pts = state.points;
+  let current = RANK_DEFS[0];
+  for (let i = RANK_DEFS.length - 1; i >= 0; i--) {
+    if (pts >= RANK_DEFS[i].min) { current = RANK_DEFS[i]; break; }
+  }
+  const next = RANK_DEFS.find(t => t.min > pts) || null;
+  const span = current.max - current.min || 1;
+  const progress = Math.min(100, ((pts - current.min) / span) * 100);
+  return { current, next, progress };
+}
+
+function getMajorRank(display) {
+  return display.split(' · ')[0];
+}
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { try { state = Object.assign(state, JSON.parse(raw)); } catch(e) {} }
+  if (!state.stats) state.stats = {};
+  if (!state.achProgress) state.achProgress = {};
+  ACHIEVEMENTS.forEach(a => {
+    if (!state.achProgress[a.id]) state.achProgress[a.id] = { level: 0, claimedLevels: [] };
+  });
+  if (state.laundryCount == null) state.laundryCount = 0;
+  if (state.ultimateDone == null) state.ultimateDone = false;
+
+  const today = todayStr();
+  if (state.date && state.date !== today) applyDayChange(state.date);
+
+  if (state.date !== today) {
+    state.date = today;
+    state.quests = {};
+    DAILY_QUESTS.forEach(q => state.quests[q.id] = false);
+    state.cleanDayFlag = true;
+    state.lastActiveDate = today;
+  }
+
+  const wk = weekKeyFromDate(today);
+  if (state.hairWeek !== wk) {
+    state.hairCount = 0;
+    state.laundryCount = 0;
+    state.hairWeek = wk;
+  }
+
+  if (!state.timedId || !state.timedStart) startNewTimed();
+  if (!state.rewards) state.rewards = [];
+  if (!state.penalties) state.penalties = [];
+  if (state.points == null) state.points = 0;
+}
+
+function applyDayChange(prevDate) {
+  const prevD = new Date(prevDate + 'T12:00:00');
+  const isSunday = prevD.getDay() === 0;
+
+  if (state.lastDeductDate !== prevDate) {
+    let deduct = 0;
+    const unfinished = [];
+    DAILY_QUESTS.filter(q => q.mandatory).forEach(q => {
+      if (!state.quests[q.id]) {
+        const d = Math.round(q.pts * DEDUCT_MULTIPLIER);
+        deduct += d;
+        unfinished.push(`${q.name}(-${d})`);
+      }
+    });
+    if (deduct > 0) {
+      const oldMajor = getMajorRank(getRankInfo().current.display);
+      state.points = Math.max(0, state.points - deduct);
+      state.penalties.push({
+        text: `【23:59结算】昨日必做未完成扣 -${deduct}pt（${unfinished.join('、')}）`,
+        status: 'done', auto: true
+      });
+      const newMajor = getMajorRank(getRankInfo().current.display);
+      if (newMajor !== oldMajor) {
+        state.penalties.push({
+          text: `段位掉落【${oldMajor} → ${newMajor}】→ 由老公决定降段位惩罚`,
+          status: 'wait', demote: true
+        });
+        showToast(`23:59结算：扣 ${deduct} pt 并掉落大段位！`);
+      } else {
+        showToast(`23:59结算：未完成必做扣 ${deduct} pt`);
+      }
+    }
+    state.lastDeductDate = prevDate;
+  }
+
+  if (isSunday) {
+    state.penalties = state.penalties.filter(p => p.status !== 'done');
+    state.rewards = state.rewards.filter(r => r.status !== 'done');
+
+    if (state.hairCount < HAIR_NEED) {
+      state.points = Math.max(0, state.points - 20);
+      state.penalties.push({ text: `【周日23:59】本周洗头未达标，倒扣 -20pt`, status: 'done', auto: true });
+    }
+    if (state.laundryCount < LAUNDRY_NEED) {
+      state.points = Math.max(0, state.points - 15);
+      state.penalties.push({ text: `【周日23:59】本周洗衣未达标，倒扣 -15pt`, status: 'done', auto: true });
+    }
+  }
+
+  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
+  const doneMand = mandatories.filter(q => state.quests[q.id]).length;
+  if (doneMand === mandatories.length) state.yesterdayScore = 'S';
+  else if (doneMand >= 3) state.yesterdayScore = 'A';
+  else if (doneMand >= 2) state.yesterdayScore = 'B';
+  else if (doneMand >= 1) state.yesterdayScore = 'C';
+  else state.yesterdayScore = 'D';
+
+  state.streak = doneMand > 0 ? (state.streak || 0) + 1 : 0;
+  state.stats.streak = state.streak;
+
+  settleAchievements();
+}
+
+function settleAchievements() {
+  let unlockedAny = false;
+  ACHIEVEMENTS.forEach(a => {
+    const val = getStatValue(a.type);
+    let newLevel = 0;
+    for (let i = 0; i < 4; i++) if (val >= a.thresholds[i]) newLevel = i + 1;
+    const prog = state.achProgress[a.id];
+    if (newLevel > prog.level) {
+      const oldLevel = prog.level;
+      prog.level = newLevel;
+      unlockedAny = true;
+      for (let l = Math.max(1, oldLevel + 1); l <= newLevel; l++) {
+        showToast(`【23:59解锁】成就【${a.name}】达到${LEVEL_NAMES[l-1]}`);
+      }
+    }
+  });
+  if (unlockedAny) { save(); renderAchievements(); }
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function startNewTimed() {
+  let newId;
+  do { newId = TIMED_POOL[Math.floor(Math.random() * TIMED_POOL.length)].id; }
+  while (newId === state.timedId && TIMED_POOL.length > 1);
+  state.timedId = newId;
+  state.timedStart = Date.now();
+  state.timedSuccessThisRound = false;
+  save();
+}
+
+function addPoints(delta, reason) {
+  const oldMajor = getMajorRank(getRankInfo().current.display);
+  state.points = Math.max(0, state.points + delta);
+  const newMajor = getMajorRank(getRankInfo().current.display);
+  save();
+  renderRank();
+
+  if (newMajor !== oldMajor && RANK_DEFS.findIndex(t => t.name === newMajor) < RANK_DEFS.findIndex(t => t.name === oldMajor)) {
+    state.penalties.push({
+      text: `段位掉落【${oldMajor} → ${newMajor}】→ 由老公决定降段位惩罚`,
+      status: 'wait', demote: true
+    });
+    renderPenalties();
+    showToast(`掉落大段位至【${newMajor}】！已生成惩罚`);
+  } else if (delta !== 0) {
+    const { current } = getRankInfo();
+    showToast(`${delta > 0 ? '+' : ''}${delta} pt` + (reason ? ` · ${reason}` : '') + ` · ${current.display}`);
+  }
+  updateDaddy();
+}
+
+function renderRank() {
+  const { current, next, progress } = getRankInfo();
+  document.getElementById('rankName').textContent = current.display;
+  document.getElementById('rankName').style.color = current.color;
+  document.getElementById('totalPoints').textContent = state.points;
+  const fill = document.getElementById('rankFill');
+  fill.style.width = progress.toFixed(1) + '%';
+  fill.style.background = current.color;
+  document.getElementById('rankSub').textContent = next
+    ? `距离 ${next.display} 还需 ${next.min - state.points} pt`
+    : '已达最高段位「神 · 1」';
+}
+
+function renderQuests() {
+  document.getElementById('questList').innerHTML = DAILY_QUESTS.map(q => {
+    const done = !!state.quests[q.id];
+    return `<div class="quest ${done ? 'done' : ''} ${q.mandatory ? '' : 'optional'}" onclick="toggleQuest('${q.id}')">
+      <div class="checkbox">${done ? '☑' : '☐'}</div>
+      <div>
+        <div class="quest-name">${q.name}${q.mandatory ? '' : '<span class="tag-optional">可选</span>'}</div>
+        <div class="quest-desc">${q.desc}</div>
+        <div class="quest-reward">${done ? '已完成' : q.reward}</div>
+        <div class="quest-pts">${done ? `+${q.pts}pt 已获得` : (q.mandatory ? `奖励 ${q.pts}pt（未完成扣${Math.round(q.pts*DEDUCT_MULTIPLIER)}）` : `可选奖励 ${q.pts}pt`)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderWeekly() {
+  const map = {
+    pending:  ['⏳ 本周待汇报', 'ws-pending'],
+    done80:   ['✅ 已交≥80% · 一顿好饭', 'ws-done'],
+    doneLow:  ['⚠️ 已交≤80% · 打手心', 'ws-fail'],
+    dueLow:   ['🔴 Passed Due <80% · 屁股开大花', 'ws-fail'],
+    dueHigh:  ['⚠️ Passed Due >80% · 屁股开花', 'ws-fail']
+  };
+  const [text, cls] = map[state.weekly] || map.pending;
+  const el = document.getElementById('weeklyStatus');
+  el.className = 'weekly-status ' + cls;
+  el.textContent = text;
+  document.getElementById('hairCount').textContent = state.hairCount || 0;
+  document.getElementById('laundryCount').textContent = state.laundryCount || 0;
+}
+
+function renderUltimate() {
+  const el = document.getElementById('ultimateStatus');
+  if (state.ultimateDone) {
+    el.className = 'ultimate-status us-done';
+    el.textContent = '✅ 已达成 · 请跟老公申请终极奖励';
+  } else {
+    el.className = 'ultimate-status us-pending';
+    el.textContent = '⏳ 进行中';
+  }
+}
+
+function renderTimed() {
+  const challenge = TIMED_POOL.find(t => t.id === state.timedId) || TIMED_POOL[0];
+  document.getElementById('timedName').textContent = challenge.name;
+  document.getElementById('timedDesc').textContent = challenge.desc;
+  const count = state.timedSuccessCount || 0;
+  document.getElementById('timedCount').textContent = count;
+  const box = document.getElementById('milestoneBox');
+  const btn = document.getElementById('claimBtn');
+  if (count >= TIMED_MILESTONE) { box.classList.add('ready'); btn.disabled = false; }
+  else { box.classList.remove('ready'); btn.disabled = true; }
+}
+
+function renderRewards() {
+  const box = document.getElementById('rewardList');
+  if (!state.rewards.length) { box.innerHTML = '<div class="empty-queue">——当前无待领取奖励——</div>'; return; }
+  box.innerHTML = state.rewards.map((r, i) => `
+    <div class="queue-item reward ${r.status === 'done' ? 'settled' : ''}" onclick="settleReward(${i})">
+      <span class="status-tag reward">${r.status === 'done' ? '✅ 已领取' : '🎁 待领取'}</span>
+      <span class="queue-text">${r.text}</span>
+    </div>`).join('');
+}
+
+function renderPenalties() {
+  const box = document.getElementById('penaltyList');
+  if (!state.penalties.length) { box.innerHTML = '<div class="empty-queue">——当前无待清算事项——</div>'; return; }
+  box.innerHTML = state.penalties.map((p, i) => `
+    <div class="queue-item penalty ${p.status === 'done' ? 'settled' : ''}" onclick="settlePenalty(${i})">
+      <span class="status-tag ${p.status === 'done' ? 'done' : (p.status === 'exec' ? 'exec' : 'wait')}">
+        ${p.status === 'done' ? '✅ 已结算' : (p.status === 'exec' ? '🔴 执行中' : '⏳ 等待执行')}
+      </span>
+      <span class="queue-text">${p.text}</span>
+    </div>`).join('');
+}
+
+function renderAchievements() {
+  document.getElementById('achievementList').innerHTML = ACHIEVEMENTS.map(a => {
+    const prog = state.achProgress[a.id] || { level: 0, claimedLevels: [] };
+    const lv = prog.level;
+    const unlocked = lv > 0;
+    const levelsHtml = LEVEL_NAMES.map((n, i) => {
+      const on = lv > i ? `on-${['copper','silver','gold','plat'][i]}` : '';
+      return `<span class="lv ${on}">${n}</span>`;
+    }).join('');
+    const canClaim = lv >= 2 && !prog.claimedLevels.includes(lv);
+    const levelName = LEVEL_NAMES[lv-1] || '';
+    return `<div class="badge ${unlocked ? 'unlocked' : 'locked'}">
+      <div class="badge-icon">${unlocked ? '🏅' : '🔒'}</div>
+      <div class="badge-name">${a.name}</div>
+      <div class="badge-cond">${a.cond}</div>
+      <div class="badge-levels">${levelsHtml}</div>
+      ${canClaim ? `<button class="badge-claim" onclick="event.stopPropagation(); claimAchReward('${a.id}', ${lv})">${levelName}达成 · 选择奖励</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleAchievements() {
+  const wrap = document.getElementById('achWrap');
+  const toggle = document.getElementById('achToggle');
+  wrap.classList.toggle('open');
+  toggle.textContent = wrap.classList.contains('open') ? '收起 ▴' : '展开 ▾';
+}
+
+function updateDaddy() {
+  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
+  const doneMand = mandatories.filter(q => state.quests[q.id]).length;
+  const { current } = getRankInfo();
+  document.getElementById('daddyComment').textContent =
+    `必做 ${doneMand}/${mandatories.length} · 【${current.display}】· 限时 ${state.timedSuccessCount||0}/${TIMED_MILESTONE}`;
+}
+
+function toggleQuest(id) {
+  const q = DAILY_QUESTS.find(x => x.id === id);
+  if (!q) return;
+  const wasDone = !!state.quests[id];
+  state.quests[id] = !wasDone;
+  if (!wasDone) {
+    addPoints(q.pts, q.name);
+    state.stats.daily_total = (state.stats.daily_total || 0) + 1;
+    if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
+    else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
+    if (id === 'brush_am' || id === 'brush_pm') state.stats.brush_total = (state.stats.brush_total || 0) + 1;
+    if (id === 'brush_am') state.stats.brush_am_total = (state.stats.brush_am_total || 0) + 1;
+    if (id === 'brush_pm') state.stats.brush_pm_total = (state.stats.brush_pm_total || 0) + 1;
+    if (id === 'bath') state.stats.bath_total = (state.stats.bath_total || 0) + 1;
+    if (id === 'water') state.stats.water_total = (state.stats.water_total || 0) + 1;
+    if (id === 'noon_report') state.stats.noon_total = (state.stats.noon_total || 0) + 1;
+    if (id === 'posture') state.stats.posture_total = (state.stats.posture_total || 0) + 1;
+    if (id === 'outfit') state.stats.outfit_total = (state.stats.outfit_total || 0) + 1;
+  } else addPoints(-q.pts, '取消任务');
+
+  const mandatories = DAILY_QUESTS.filter(x => x.mandatory);
+  if (mandatories.every(x => state.quests[x.id]) && !wasDone) {
+    addPoints(12, '必做全勤奖励');
+    state.stats.full_day_count = (state.stats.full_day_count || 0) + 1;
+    if (state.cleanDayFlag) state.stats.clean_days = (state.stats.clean_days || 0) + 1;
+  }
+  const optCount = DAILY_QUESTS.filter(x => !x.mandatory && state.quests[x.id]).length;
+  if (optCount >= 2 && !wasDone) state.stats.both_optional_count = (state.stats.both_optional_count || 0) + 1;
+  if (state.quests['bath'] && state.quests['brush_am'] && state.quests['brush_pm'] && !wasDone)
+    state.stats.bath_brush_combo = (state.stats.bath_brush_combo || 0) + 1;
+
+  save(); renderQuests(); updateDaddy();
+}
+
+function setWeekly(status) {
+  state.penalties = state.penalties.filter(p => !p.fromWeekly);
+  state.rewards = state.rewards.filter(r => !r.fromWeekly);
+  state.weekly = status;
+  state.cleanDayFlag = false;
+  if (status === 'done80') {
+    state.rewards.push({ text: '作业已交≥80% → 一顿好饭', status: 'wait', fromWeekly: true });
+    state.stats.weekly_good_count = (state.stats.weekly_good_count || 0) + 1;
+    showToast('作业优秀，奖励已加入队列');
+  } else if (status === 'doneLow') {
+    state.penalties.push({ text: '作业已交≤80% → 打手心', status: 'wait', fromWeekly: true });
+    showToast('已记录惩罚：打手心');
+  } else if (status === 'dueLow') {
+    state.penalties.push({ text: 'Passed Due <80% → 屁股开大花', status: 'wait', fromWeekly: true });
+    showToast('已记录惩罚：屁股开大花');
+  } else if (status === 'dueHigh') {
+    state.penalties.push({ text: 'Passed Due >80% → 屁股开花', status: 'wait', fromWeekly: true });
+    showToast('已记录惩罚：屁股开花');
+  }
+  save(); renderWeekly(); renderRewards(); renderPenalties(); updateDaddy();
+}
+
+function addHairWash() {
+  if (state.hairCount >= HAIR_NEED) { showToast('本周洗头已完成'); return; }
+  state.hairCount = (state.hairCount || 0) + 1;
+  state.stats.hair_total = (state.stats.hair_total || 0) + 1;
+  addPoints(12, '洗头打卡');
+  save(); renderWeekly();
+}
+function addLaundry() {
+  if (state.laundryCount >= LAUNDRY_NEED) { showToast('本周洗衣已完成'); return; }
+  state.laundryCount = (state.laundryCount || 0) + 1;
+  state.stats.laundry_total = (state.stats.laundry_total || 0) + 1;
+  addPoints(10, '洗衣打卡');
+  save(); renderWeekly();
+}
+
+function completeUltimate() {
+  if (state.ultimateDone) { showToast('已达成'); return; }
+  if (!confirm('确认已完成减肥40斤？达成后请跟老公申请终极奖励。')) return;
+  state.ultimateDone = true;
+  save();
+  renderUltimate();
+  showToast('终极挑战达成！请跟老公申请终极奖励');
+}
+function resetUltimate() {
+  if (!confirm('重置终极挑战进度？')) return;
+  state.ultimateDone = false;
+  save();
+  renderUltimate();
+}
+
+function completeTimed() {
+  if (state.timedSuccessThisRound) { showToast('本轮已标记成功'); return; }
+  const elapsed = Date.now() - (state.timedStart || Date.now());
+  if (elapsed > TIMED_DURATION) { showToast('本轮已超时'); return; }
+  state.timedSuccessThisRound = true;
+  state.timedSuccessCount = (state.timedSuccessCount || 0) + 1;
+  state.stats.timed_total = (state.stats.timed_total || 0) + 1;
+  addPoints(30, '限时挑战成功');
+  save(); renderTimed(); updateDaddy();
+  showToast(`挑战成功！累计 ${state.timedSuccessCount}/${TIMED_MILESTONE}`);
+}
+
+function updateCountdown() {
+  const now = Date.now();
+  let start = state.timedStart || now;
+  let elapsed = now - start;
+  if (elapsed >= TIMED_DURATION) {
+    startNewTimed(); elapsed = 0;
+    showToast('限时挑战已自动刷新');
+    renderTimed();
+  }
+  const remain = Math.max(0, TIMED_DURATION - elapsed);
+  const pct = Math.min(100, (elapsed / TIMED_DURATION) * 100);
+  const h = Math.floor(remain / 3600000);
+  const m = Math.floor((remain % 3600000) / 60000);
+  const s = Math.floor((remain % 60000) / 1000);
+  const cd = document.getElementById('countdown');
+  if (state.timedSuccessThisRound) {
+    cd.textContent = '已成功'; cd.classList.add('finished');
+  } else {
+    cd.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    cd.classList.remove('finished');
+  }
+  document.getElementById('progressFill').style.width = pct.toFixed(1) + '%';
+  document.getElementById('progressText').textContent = pct.toFixed(0) + '%';
+  document.getElementById('successBtn').disabled = state.timedSuccessThisRound || elapsed >= TIMED_DURATION;
+}
+
+function getStatValue(type) {
+  if (type === 'points') return state.points;
+  if (type === 'streak') return state.streak || 0;
+  if (type === 'rank_index') return RANK_DEFS.findIndex(t => t.display === getRankInfo().current.display);
+  return state.stats[type] || 0;
+}
+
+let modalSource = 'timed';
+let pendingAchId = null;
+let pendingAchLevel = null;
+
+function claimAchReward(achId, level) {
+  const prog = state.achProgress[achId];
+  if (!prog || prog.level < level || prog.claimedLevels.includes(level)) return;
+  pendingAchId = achId;
+  pendingAchLevel = level;
+  modalSource = 'achievement';
+  const isPlatinum = level === 4;
+  const pool = isPlatinum ? HIGH_REWARDS : SMALL_REWARDS;
+  const levelName = LEVEL_NAMES[level - 1];
+  const achName = ACHIEVEMENTS.find(a => a.id === achId).name;
+  document.getElementById('modalTitle').textContent = `【${achName}】${levelName}奖励`;
+  document.getElementById('modalDesc').textContent = isPlatinum ? '白金成就可选择高级奖励：' : `${levelName}成就可选择小奖励：`;
+  document.getElementById('rewardOptions').innerHTML = pool.map((r, i) =>
+    `<div class="reward-option" data-idx="${i}" onclick="selectRewardOption(this)">${r}</div>`
+  ).join('');
+  document.getElementById('confirmRewardBtn').disabled = true;
+  window._selectedReward = null;
+  document.getElementById('rewardModal').classList.add('show');
+}
+
+function openRewardModal(source) {
+  modalSource = source || 'timed';
+  pendingAchId = null;
+  pendingAchLevel = null;
+  if (modalSource === 'timed' && (state.timedSuccessCount || 0) < TIMED_MILESTONE) return;
+  document.getElementById('modalTitle').textContent = '向老公提出自选奖励';
+  document.getElementById('modalDesc').textContent = `已累计完成${TIMED_MILESTONE}次限时挑战，选择高级奖励：`;
+  document.getElementById('rewardOptions').innerHTML = HIGH_REWARDS.map((r, i) =>
+    `<div class="reward-option" data-idx="${i}" onclick="selectRewardOption(this)">${r}</div>`
+  ).join('');
+  document.getElementById('confirmRewardBtn').disabled = true;
+  window._selectedReward = null;
+  document.getElementById('rewardModal').classList.add('show');
+}
+
+function selectRewardOption(el) {
+  document.querySelectorAll('.reward-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  window._selectedReward = el.textContent;
+  document.getElementById('confirmRewardBtn').disabled = false;
+}
+function closeRewardModal() {
+  document.getElementById('rewardModal').classList.remove('show');
+  pendingAchId = null; pendingAchLevel = null;
+}
+function confirmCustomReward() {
+  if (!window._selectedReward) return;
+  if (modalSource === 'achievement' && pendingAchId && pendingAchLevel) {
+    const prog = state.achProgress[pendingAchId];
+    prog.claimedLevels.push(pendingAchLevel);
+    const achName = ACHIEVEMENTS.find(a => a.id === pendingAchId).name;
+    const levelName = LEVEL_NAMES[pendingAchLevel - 1];
+    state.rewards.push({ text: `成就【${achName}】${levelName}奖励：${window._selectedReward}`, status: 'wait', fromAch: true });
+    showToast(`${levelName}成就奖励已加入队列`);
+  } else {
+    state.rewards.push({ text: `自选奖励：${window._selectedReward}`, status: 'wait', custom: true });
+    state.timedSuccessCount = 0;
+    showToast('自选奖励已加入队列');
+  }
+  state.stats.reward_claimed = (state.stats.reward_claimed || 0) + 1;
+  save(); closeRewardModal(); renderTimed(); renderRewards(); renderAchievements(); updateDaddy();
+}
+
+function settleReward(idx) {
+  if (!state.rewards[idx]) return;
+  const was = state.rewards[idx].status;
+  state.rewards[idx].status = was === 'done' ? 'wait' : 'done';
+  if (state.rewards[idx].status === 'done') state.stats.reward_claimed = (state.stats.reward_claimed || 0) + 1;
+  save(); renderRewards();
+}
+function settlePenalty(idx) {
+  if (!state.penalties[idx]) return;
+  const was = state.penalties[idx].status;
+  state.penalties[idx].status = was === 'done' ? 'wait' : 'done';
+  if (state.penalties[idx].status === 'done') state.stats.penalty_settled = (state.stats.penalty_settled || 0) + 1;
+  save(); renderPenalties();
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+function manualSave() { save(); showToast('进度已保存'); }
+function fullReset() {
+  if (!confirm('确定清空所有数据？此操作不可恢复。')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function renderAll() {
+  const displayDate = state.date || todayStr();
+  const d = new Date(displayDate + 'T12:00:00');
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('dateDisplay').textContent =
+    `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} · 周${days[d.getDay()]}`;
+  document.getElementById('yesterdayScore').textContent = state.yesterdayScore || '—';
+  renderRank(); renderQuests(); renderWeekly(); renderUltimate(); renderTimed();
+  renderRewards(); renderPenalties(); renderAchievements();
+  updateDaddy(); updateCountdown();
+}
+
+load();
+renderAll();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
