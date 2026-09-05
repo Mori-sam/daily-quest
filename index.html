@@ -1,46 +1,3 @@
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1545585375379197995/q8Fu6B8fkq3S9VP2DOFrKTQYaPBfq7bc7ezNT8tkfl8jBrKdKDgPHTDsC-2mtH2WvEom";
-// ==================== Discord 通知功能 ====================
-async function sendDiscord(content) {
-  if (!DISCORD_WEBHOOK || DISCORD_WEBHOOK.includes("这里粘贴")) return;
-  
-  try {
-    await fetch(DISCORD_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: content,
-        username: "调教任务面板"
-      })
-    });
-  } catch (e) {
-    console.log("Discord 发送失败", e);
-  }
-}
-
-// 封装几个常用通知
-function notifyTask(name) {
-  sendDiscord(`✅ **完成任务**：${name}\n当前积分：${state.points} pt`);
-}
-
-function notifyTimedSuccess(name) {
-  sendDiscord(`🎯 **限时挑战成功**：${name}\n累计成功：${state.timedSuccessCount}/10`);
-}
-
-function notifyDaySettle(summary) {
-  sendDiscord(`🌙 **跨天结算**\n${summary}`);
-}
-
-function notifyReward(text) {
-  sendDiscord(`🎁 **获得奖励**：${text}`);
-}
-
-function notifyPenalty(text) {
-  sendDiscord(`⚡ **触发惩罚**：${text}`);
-}
-
-function notifyRankChange(oldRank, newRank) {
-  sendDiscord(`📉 **段位掉落**：${oldRank} → ${newRank}`);
-}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -453,11 +410,49 @@ function notifyRankChange(oldRank, newRank) {
 
 <script>
 const STORAGE_KEY = 'dsQuestPanel_PROD_v2';
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1545585375379197995/q8Fu6B8fkq3S9VP2DOFrKTQYaPBfq7bc7ezNT8tkfl8jBrKdKDgPHTDsC-2mtH2WvEom";
 
+// ==================== Discord 通知 ====================
+async function sendDiscord(content) {
+  if (!DISCORD_WEBHOOK) return;
+  try {
+    await fetch(DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: content,
+        username: "调教任务面板"
+      })
+    });
+  } catch (e) {
+    console.log("Discord发送失败", e);
+  }
+}
+
+function notifyTask(name) {
+  sendDiscord(`✅ **完成任务**：${name}\n当前积分：${state.points} pt · 段位：${getRankInfo().current.display}`);
+}
+function notifyTimedSuccess(name) {
+  sendDiscord(`🎯 **限时挑战成功**：${name}\n累计成功：${state.timedSuccessCount}/10`);
+}
+function notifyDaySettle(summary) {
+  sendDiscord(`🌙 **跨天结算**\n${summary}`);
+}
+function notifyReward(text) {
+  sendDiscord(`🎁 **获得奖励**：${text}`);
+}
+function notifyPenalty(text) {
+  sendDiscord(`⚡ **触发惩罚**：${text}`);
+}
+function notifyRankChange(oldRank, newRank) {
+  sendDiscord(`📉 **段位掉落**：${oldRank} → ${newRank}\n由老公决定降段位惩罚`);
+}
+
+// ==================== 游戏数据 ====================
 const RANK_DEFS = (() => {
   const names = ['铜','银','金','白金','翡翠','紫水晶','金刚石','大师','王者','神'];
   const colors = ['var(--copper)','var(--silver)','var(--gold)','var(--platinum)','var(--jade)','var(--amethyst)','var(--diamond)','var(--master)','var(--king)','var(--god)'];
-  let ranges = [], base = 300; // 原200再×1.5
+  let ranges = [], base = 300;
   for (let i = 0; i < 10; i++) { ranges.push(Math.round(base)); base *= 1.5; }
   const tiers = []; let cum = 0;
   names.forEach((name, ri) => {
@@ -485,6 +480,7 @@ const TIMED_POOL = [
   { id: 'hold', name: '憋尿耐力挑战', desc: '3小时内禁止排泄，保持正常活动，定时向老公汇报感觉。' },
   { id: 'kneel', name: '视频跪姿训练', desc: '在视频通话中累计完成指定时长的跪姿（可分段）。' },
   { id: 'plug', name: '居家佩戴道具', desc: '在家全程佩戴指定道具，期间保持在线随时接受抽查。' },
+  { id: 'silence', name: '禁言服从', desc: '除必要汇报外禁止主动发消息/说话，只能回复老公指令。' },
   { id: 'ice', name: '冰块忍耐', desc: '按指令使用冰块进行指定部位忍耐，并实时文字描述感受。' },
   { id: 'writing', name: '服从书写', desc: '手写指定服从语句并拍照上传（可不露脸）。' },
   { id: 'voice', name: '语音汇报感受', desc: '定时用语音向老公详细汇报当前身体与心理状态。' },
@@ -493,27 +489,14 @@ const TIMED_POOL = [
 ];
 
 const HIGH_REWARDS = [
-  '52美金现金',
-  '让老公在家穿你指定的衣服',
-  '免除一次已有惩罚',
-  '额外加 80 积分',
-  '允许一次「撒娇特权」整天',
-  '老公亲自准备一次特别奖励',
-  '自由提出一个小愿望（需合理）',
-  '奖励一次美甲（手指）'
+  '52美金现金', '让老公在家穿你指定的衣服', '免除一次已有惩罚', '额外加 80 积分',
+  '允许一次「撒娇特权」整天', '老公亲自准备一次特别奖励', '自由提出一个小愿望（需合理）', '奖励一次美甲（手指）'
 ];
 
 const SMALL_REWARDS = [
-  '额外加 15 积分',
-  '今晚可以提前 10 分钟休息',
-  '免除一次小违规口头警告',
-  '允许一次短时间自由聊天',
-  '获得一次「摸头杀」特权',
-  '今晚可以自己选一部电影一起看',
-  '额外加 20 积分',
-  '获得一次「撒娇 5 分钟」特权',
-  '今晚跪姿时间减少 5 分钟',
-  '允许一次「问一个问题」特权'
+  '额外加 15 积分', '今晚可以提前 10 分钟休息', '免除一次小违规口头警告', '允许一次短时间自由聊天',
+  '获得一次「摸头杀」特权', '今晚可以自己选一部电影一起看', '额外加 20 积分', '获得一次「撒娇 5 分钟」特权',
+  '今晚跪姿时间减少 5 分钟', '允许一次「问一个问题」特权'
 ];
 
 const ACHIEVEMENTS = [
@@ -656,6 +639,7 @@ function applyDayChange(prevDate) {
           text: `段位掉落【${oldMajor} → ${newMajor}】→ 由老公决定降段位惩罚`,
           status: 'wait', demote: true
         });
+        notifyRankChange(oldMajor, newMajor);
         showToast(`23:59结算：扣 ${deduct} pt 并掉落大段位！`);
       } else {
         showToast(`23:59结算：未完成必做扣 ${deduct} pt`);
@@ -689,10 +673,10 @@ function applyDayChange(prevDate) {
   state.streak = doneMand > 0 ? (state.streak || 0) + 1 : 0;
   state.stats.streak = state.streak;
 
+  // 跨天结算通知
+  notifyDaySettle(`昨日必做完成 ${doneMand}/${mandatories.length} 项\n当前积分：${state.points} pt\n昨日总评：${state.yesterdayScore}\n段位：${getRankInfo().current.display}`);
+
   settleAchievements();
-  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
-  const doneCount = mandatories.filter(q => state.quests[q.id]).length;
-    notifyDaySettle(`昨日必做完成 ${doneCount}/${mandatories.length} 项\n当前积分：${state.points} pt\n昨日总评：${state.yesterdayScore}`);
 }
 
 function settleAchievements() {
@@ -880,7 +864,7 @@ function toggleQuest(id) {
   state.quests[id] = !wasDone;
   if (!wasDone) {
     addPoints(q.pts, q.name);
-    notifyTask(q.name);
+    notifyTask(q.name);   // Discord 通知
     state.stats.daily_total = (state.stats.daily_total || 0) + 1;
     if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
     else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
@@ -917,7 +901,7 @@ function setWeekly(status) {
     state.rewards.push({ text: '作业已交≥80% → 一顿好饭', status: 'wait', fromWeekly: true });
     state.stats.weekly_good_count = (state.stats.weekly_good_count || 0) + 1;
     showToast('作业优秀，奖励已加入队列');
-    notifyPenalty('作业已交≥80% → 一顿好饭');
+    notifyReward('作业已交≥80% → 一顿好饭');
   } else if (status === 'doneLow') {
     state.penalties.push({ text: '作业已交≤80% → 打手心', status: 'wait', fromWeekly: true });
     showToast('已记录惩罚：打手心');
@@ -939,6 +923,7 @@ function addHairWash() {
   state.hairCount = (state.hairCount || 0) + 1;
   state.stats.hair_total = (state.stats.hair_total || 0) + 1;
   addPoints(12, '洗头打卡');
+  notifyTask('每周洗头');
   save(); renderWeekly();
 }
 function addLaundry() {
@@ -946,6 +931,7 @@ function addLaundry() {
   state.laundryCount = (state.laundryCount || 0) + 1;
   state.stats.laundry_total = (state.stats.laundry_total || 0) + 1;
   addPoints(10, '洗衣打卡');
+  notifyTask('每周洗衣服');
   save(); renderWeekly();
 }
 
@@ -956,6 +942,7 @@ function completeUltimate() {
   save();
   renderUltimate();
   showToast('终极挑战达成！请跟老公申请终极奖励');
+  sendDiscord(`👑 **终极挑战达成**：减肥40斤\n请跟老公申请终极奖励`);
 }
 function resetUltimate() {
   if (!confirm('重置终极挑战进度？')) return;
@@ -973,7 +960,7 @@ function completeTimed() {
   state.stats.timed_total = (state.stats.timed_total || 0) + 1;
   addPoints(30, '限时挑战成功');
   const challenge = TIMED_POOL.find(t => t.id === state.timedId);
-notifyTimedSuccess(challenge ? challenge.name : '限时挑战');
+  notifyTimedSuccess(challenge ? challenge.name : '限时挑战');
   save(); renderTimed(); updateDaddy();
   showToast(`挑战成功！累计 ${state.timedSuccessCount}/${TIMED_MILESTONE}`);
 }
@@ -1069,10 +1056,12 @@ function confirmCustomReward() {
     const levelName = LEVEL_NAMES[pendingAchLevel - 1];
     state.rewards.push({ text: `成就【${achName}】${levelName}奖励：${window._selectedReward}`, status: 'wait', fromAch: true });
     showToast(`${levelName}成就奖励已加入队列`);
+    notifyReward(`成就【${achName}】${levelName}：${window._selectedReward}`);
   } else {
     state.rewards.push({ text: `自选奖励：${window._selectedReward}`, status: 'wait', custom: true });
     state.timedSuccessCount = 0;
     showToast('自选奖励已加入队列');
+    notifyReward(`自选奖励：${window._selectedReward}`);
   }
   state.stats.reward_claimed = (state.stats.reward_claimed || 0) + 1;
   save(); closeRewardModal(); renderTimed(); renderRewards(); renderAchievements(); updateDaddy();
