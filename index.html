@@ -1,4 +1,46 @@
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1545585375379197995/q8Fu6B8fkq3S9VP2DOFrKTQYaPBfq7bc7ezNT8tkfl8jBrKdKDgPHTDsC-2mtH2WvEom";
+// ==================== Discord 通知功能 ====================
+async function sendDiscord(content) {
+  if (!DISCORD_WEBHOOK || DISCORD_WEBHOOK.includes("这里粘贴")) return;
+  
+  try {
+    await fetch(DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: content,
+        username: "调教任务面板"
+      })
+    });
+  } catch (e) {
+    console.log("Discord 发送失败", e);
+  }
+}
+
+// 封装几个常用通知
+function notifyTask(name) {
+  sendDiscord(`✅ **完成任务**：${name}\n当前积分：${state.points} pt`);
+}
+
+function notifyTimedSuccess(name) {
+  sendDiscord(`🎯 **限时挑战成功**：${name}\n累计成功：${state.timedSuccessCount}/10`);
+}
+
+function notifyDaySettle(summary) {
+  sendDiscord(`🌙 **跨天结算**\n${summary}`);
+}
+
+function notifyReward(text) {
+  sendDiscord(`🎁 **获得奖励**：${text}`);
+}
+
+function notifyPenalty(text) {
+  sendDiscord(`⚡ **触发惩罚**：${text}`);
+}
+
+function notifyRankChange(oldRank, newRank) {
+  sendDiscord(`📉 **段位掉落**：${oldRank} → ${newRank}`);
+}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -648,6 +690,9 @@ function applyDayChange(prevDate) {
   state.stats.streak = state.streak;
 
   settleAchievements();
+  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
+  const doneCount = mandatories.filter(q => state.quests[q.id]).length;
+    notifyDaySettle(`昨日必做完成 ${doneCount}/${mandatories.length} 项\n当前积分：${state.points} pt\n昨日总评：${state.yesterdayScore}`);
 }
 
 function settleAchievements() {
@@ -695,6 +740,7 @@ function addPoints(delta, reason) {
     });
     renderPenalties();
     showToast(`掉落大段位至【${newMajor}】！已生成惩罚`);
+    notifyRankChange(oldMajor, newMajor);
   } else if (delta !== 0) {
     const { current } = getRankInfo();
     showToast(`${delta > 0 ? '+' : ''}${delta} pt` + (reason ? ` · ${reason}` : '') + ` · ${current.display}`);
@@ -834,6 +880,7 @@ function toggleQuest(id) {
   state.quests[id] = !wasDone;
   if (!wasDone) {
     addPoints(q.pts, q.name);
+    notifyTask(q.name);
     state.stats.daily_total = (state.stats.daily_total || 0) + 1;
     if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
     else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
@@ -870,15 +917,19 @@ function setWeekly(status) {
     state.rewards.push({ text: '作业已交≥80% → 一顿好饭', status: 'wait', fromWeekly: true });
     state.stats.weekly_good_count = (state.stats.weekly_good_count || 0) + 1;
     showToast('作业优秀，奖励已加入队列');
+    notifyPenalty('作业已交≥80% → 一顿好饭');
   } else if (status === 'doneLow') {
     state.penalties.push({ text: '作业已交≤80% → 打手心', status: 'wait', fromWeekly: true });
     showToast('已记录惩罚：打手心');
+    notifyPenalty('作业已交≤80% → 打手心');
   } else if (status === 'dueLow') {
     state.penalties.push({ text: 'Passed Due <80% → 屁股开大花', status: 'wait', fromWeekly: true });
     showToast('已记录惩罚：屁股开大花');
+    notifyPenalty('Passed Due <80% → 屁股开大花');
   } else if (status === 'dueHigh') {
     state.penalties.push({ text: 'Passed Due >80% → 屁股开花', status: 'wait', fromWeekly: true });
     showToast('已记录惩罚：屁股开花');
+    notifyPenalty('Passed Due >80% → 屁股开花');
   }
   save(); renderWeekly(); renderRewards(); renderPenalties(); updateDaddy();
 }
@@ -921,6 +972,8 @@ function completeTimed() {
   state.timedSuccessCount = (state.timedSuccessCount || 0) + 1;
   state.stats.timed_total = (state.stats.timed_total || 0) + 1;
   addPoints(30, '限时挑战成功');
+  const challenge = TIMED_POOL.find(t => t.id === state.timedId);
+notifyTimedSuccess(challenge ? challenge.name : '限时挑战');
   save(); renderTimed(); updateDaddy();
   showToast(`挑战成功！累计 ${state.timedSuccessCount}/${TIMED_MILESTONE}`);
 }
