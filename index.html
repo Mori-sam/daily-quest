@@ -100,6 +100,7 @@
   .ws-pending { background: rgba(255,159,67,0.15); color: var(--neon-orange); }
   .ws-done { background: rgba(0,255,159,0.15); color: var(--neon-green); }
   .ws-fail { background: rgba(255,71,87,0.15); color: var(--neon-red); }
+  .ws-recorded { background: rgba(0,229,255,0.12); color: var(--neon-cyan); }
   .weekly-btns { display: flex; gap: 6px; flex-wrap: wrap; }
   .wbtn {
     font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border);
@@ -230,31 +231,59 @@
     padding: 9px 18px; border-radius: 8px; font-size: 12px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 99;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== 完成任务二级界面 ===== */
   .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
-    justify-content: center; align-items: center; z-index: 200; padding: 20px;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: none;
+    justify-content: center; align-items: center; z-index: 200; padding: 16px;
   }
   .modal-overlay.show { display: flex; }
   .modal {
-    background: var(--panel); border: 1px solid var(--gold); border-radius: 12px;
-    width: 100%; max-width: 360px; padding: 18px; box-shadow: 0 0 30px rgba(255,215,0,0.15);
-    max-height: 80vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--neon-cyan); border-radius: 14px;
+    width: 100%; max-width: 380px; padding: 18px; box-shadow: 0 0 40px rgba(0,229,255,0.12);
+    max-height: 90vh; overflow-y: auto;
   }
-  .modal-title { font-size: 15px; font-weight: 700; color: var(--gold); margin-bottom: 6px; text-align: center; }
+  .modal-title { font-size: 16px; font-weight: 700; color: var(--neon-cyan); margin-bottom: 4px; text-align: center; }
+  .modal-task-name { font-size: 14px; color: var(--gold); text-align: center; margin-bottom: 14px; font-weight: 600; }
   .modal-desc { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 14px; }
+  .upload-area {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 16px;
+    text-align: center; margin-bottom: 12px; background: var(--panel-2); cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .upload-area:hover, .upload-area.has-file { border-color: var(--neon-cyan); }
+  .upload-area input { display: none; }
+  .upload-hint { font-size: 13px; color: var(--muted); }
+  .upload-preview {
+    max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 10px;
+    display: none; object-fit: contain;
+  }
+  .note-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .note-input {
+    width: 100%; min-height: 70px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px; font-size: 13px;
+    font-family: inherit; resize: vertical; margin-bottom: 14px;
+  }
+  .note-input:focus { outline: none; border-color: var(--neon-cyan); }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1; padding: 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 14px; font-weight: 500;
+  }
+  .modal-btn.cancel:hover { border-color: var(--muted); }
+  .modal-btn.confirm {
+    border-color: var(--neon-green); color: var(--neon-green);
+    background: rgba(0,255,159,0.08);
+  }
+  .modal-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .modal-btn.confirm:not(:disabled):hover { background: rgba(0,255,159,0.18); }
+
   .reward-option {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; font-size: 13px;
   }
   .reward-option:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
   .reward-option.selected { border-color: var(--gold); background: rgba(255,215,0,0.1); }
-  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
-  .modal-btn {
-    flex: 1; padding: 9px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 13px;
-  }
-  .modal-btn.confirm { border-color: var(--gold); color: var(--gold); }
-  .modal-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -286,7 +315,7 @@
     <div class="section-title"><span>📅</span> 每周必做</div>
     <div class="weekly-card">
       <div class="weekly-title">作业完成度汇报</div>
-      <div class="weekly-desc">每周自行上传 Canvas 截图向老公汇报作业进度与成绩。</div>
+      <div class="weekly-desc">每周自行上传 Canvas 截图向老公汇报。<br><b style="color:var(--neon-orange)">选择后只会记录，奖罚在周日23:59才正式生效</b></div>
       <div class="weekly-rules">
         <b>已交、≥80%：</b>一顿好饭<br>
         <b>已交、≤80%：</b>打手心<br>
@@ -394,13 +423,37 @@
   <div class="footer-bar"></div>
 </div>
 
+<!-- 完成任务二级界面 -->
+<div class="modal-overlay" id="completeModal">
+  <div class="modal">
+    <div class="modal-title">完成任务确认</div>
+    <div class="modal-task-name" id="completeTaskName">—</div>
+    <div class="modal-desc">请上传证明照片后才能完成任务<br>可填写补充说明（选填）</div>
+
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-hint" id="uploadHint">📷 点击选择 / 拍摄照片</div>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onFileSelected(event)">
+      <img class="upload-preview" id="uploadPreview" alt="预览">
+    </div>
+
+    <div class="note-label">补充说明 / Note（选填）</div>
+    <textarea class="note-input" id="noteInput" placeholder="可以写一点说明，比如完成时间、感受等..."></textarea>
+
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeCompleteModal()">返回</button>
+      <button class="modal-btn confirm" id="confirmCompleteBtn" disabled onclick="confirmComplete()">确认完成并上传</button>
+    </div>
+  </div>
+</div>
+
+<!-- 奖励选择界面 -->
 <div class="modal-overlay" id="rewardModal">
   <div class="modal">
     <div class="modal-title" id="modalTitle">向老公提出自选奖励</div>
     <div class="modal-desc" id="modalDesc">选择一个你想要的奖励：</div>
     <div id="rewardOptions"></div>
     <div class="modal-actions">
-      <button class="modal-btn" onclick="closeRewardModal()">取消</button>
+      <button class="modal-btn cancel" onclick="closeRewardModal()">取消</button>
       <button class="modal-btn confirm" id="confirmRewardBtn" disabled onclick="confirmCustomReward()">确认选择</button>
     </div>
   </div>
@@ -409,23 +462,29 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = 'dsQuestPanel_PROD_v2';
+const STORAGE_KEY = 'dsQuestPanel_PROD_v4';
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1545585375379197995/q8Fu6B8fkq3S9VP2DOFrKTQYaPBfq7bc7ezNT8tkfl8jBrKdKDgPHTDsC-2mtH2WvEom";
 
-// ==================== Discord 通知 ====================
-async function sendDiscord(content) {
-  if (!DISCORD_WEBHOOK) return;
+async function sendDiscord(content, file = null) {
+  if (!DISCORD_WEBHOOK) return false;
   try {
-    await fetch(DISCORD_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: content,
-        username: "调教任务面板"
-      })
-    });
+    if (file) {
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('file', file, file.name || 'proof.jpg');
+      const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', body: formData });
+      return res.ok;
+    } else {
+      const res = await fetch(DISCORD_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, username: '调教任务面板' })
+      });
+      return res.ok;
+    }
   } catch (e) {
-    console.log("Discord发送失败", e);
+    console.log('Discord发送失败', e);
+    return false;
   }
 }
 
@@ -448,7 +507,6 @@ function notifyRankChange(oldRank, newRank) {
   sendDiscord(`📉 **段位掉落**：${oldRank} → ${newRank}\n由老公决定降段位惩罚`);
 }
 
-// ==================== 游戏数据 ====================
 const RANK_DEFS = (() => {
   const names = ['铜','银','金','白金','翡翠','紫水晶','金刚石','大师','王者','神'];
   const colors = ['var(--copper)','var(--silver)','var(--gold)','var(--platinum)','var(--jade)','var(--amethyst)','var(--diamond)','var(--master)','var(--king)','var(--god)'];
@@ -551,6 +609,139 @@ let state = {
   streak: 0, lastActiveDate: null, lastDeductDate: null, cleanDayFlag: true
 };
 
+// ===== 完成任务弹窗相关 =====
+let pendingQuestId = null;
+let selectedFile = null;
+
+function openCompleteModal(questId) {
+  const q = DAILY_QUESTS.find(x => x.id === questId);
+  if (!q) return;
+  pendingQuestId = questId;
+  selectedFile = null;
+  document.getElementById('completeTaskName').textContent = q.name;
+  document.getElementById('noteInput').value = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadPreview').style.display = 'none';
+  document.getElementById('uploadHint').textContent = '📷 点击选择 / 拍摄照片';
+  document.getElementById('uploadArea').classList.remove('has-file');
+  document.getElementById('confirmCompleteBtn').disabled = true;
+  document.getElementById('completeModal').classList.add('show');
+}
+
+function closeCompleteModal() {
+  document.getElementById('completeModal').classList.remove('show');
+  pendingQuestId = null;
+  selectedFile = null;
+}
+
+function onFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('请上传图片文件');
+    return;
+  }
+  // 限制大小（Discord 免费用户约 8MB）
+  if (file.size > 7.5 * 1024 * 1024) {
+    showToast('图片太大，请压缩后再上传（建议 < 7MB）');
+    return;
+  }
+  selectedFile = file;
+  const preview = document.getElementById('uploadPreview');
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+  document.getElementById('uploadHint').textContent = '✅ 已选择照片（点击可更换）';
+  document.getElementById('uploadArea').classList.add('has-file');
+  document.getElementById('confirmCompleteBtn').disabled = false;
+}
+
+async function confirmComplete() {
+  if (!pendingQuestId || !selectedFile) {
+    showToast('请先上传照片');
+    return;
+  }
+  const q = DAILY_QUESTS.find(x => x.id === pendingQuestId);
+  if (!q) return;
+
+  const btn = document.getElementById('confirmCompleteBtn');
+  btn.disabled = true;
+  btn.textContent = '上传中...';
+
+  const note = document.getElementById('noteInput').value.trim();
+  const content = `✅ **完成任务**：${q.name}\n` +
+                  `积分：+${q.pts} pt\n` +
+                  `当前总分：${state.points + q.pts} pt\n` +
+                  (note ? `备注：${note}` : '备注：无');
+
+  const ok = await sendDiscord(content, selectedFile);
+
+  if (!ok) {
+    showToast('上传失败，请检查网络后重试');
+    btn.disabled = false;
+    btn.textContent = '确认完成并上传';
+    return;
+  }
+
+  // 真正完成任务
+  doCompleteQuest(pendingQuestId);
+  closeCompleteModal();
+  showToast('已完成并上传成功！');
+  btn.textContent = '确认完成并上传';
+}
+
+function doCompleteQuest(id) {
+  const q = DAILY_QUESTS.find(x => x.id === id);
+  if (!q || state.quests[id]) return;
+
+  state.quests[id] = true;
+  addPoints(q.pts, q.name);
+
+  state.stats.daily_total = (state.stats.daily_total || 0) + 1;
+  if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
+  else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
+  if (id === 'brush_am' || id === 'brush_pm') state.stats.brush_total = (state.stats.brush_total || 0) + 1;
+  if (id === 'brush_am') state.stats.brush_am_total = (state.stats.brush_am_total || 0) + 1;
+  if (id === 'brush_pm') state.stats.brush_pm_total = (state.stats.brush_pm_total || 0) + 1;
+  if (id === 'bath') state.stats.bath_total = (state.stats.bath_total || 0) + 1;
+  if (id === 'water') state.stats.water_total = (state.stats.water_total || 0) + 1;
+  if (id === 'noon_report') state.stats.noon_total = (state.stats.noon_total || 0) + 1;
+  if (id === 'posture') state.stats.posture_total = (state.stats.posture_total || 0) + 1;
+  if (id === 'outfit') state.stats.outfit_total = (state.stats.outfit_total || 0) + 1;
+
+  const mandatories = DAILY_QUESTS.filter(x => x.mandatory);
+  if (mandatories.every(x => state.quests[x.id])) {
+    addPoints(12, '必做全勤奖励');
+    state.stats.full_day_count = (state.stats.full_day_count || 0) + 1;
+    if (state.cleanDayFlag) state.stats.clean_days = (state.stats.clean_days || 0) + 1;
+  }
+  const optCount = DAILY_QUESTS.filter(x => !x.mandatory && state.quests[x.id]).length;
+  if (optCount >= 2) state.stats.both_optional_count = (state.stats.both_optional_count || 0) + 1;
+  if (state.quests['bath'] && state.quests['brush_am'] && state.quests['brush_pm'])
+    state.stats.bath_brush_combo = (state.stats.bath_brush_combo || 0) + 1;
+
+  save();
+  renderQuests();
+  updateDaddy();
+}
+
+// 点击任务：未完成 → 弹窗；已完成 → 可取消
+function toggleQuest(id) {
+  if (state.quests[id]) {
+    // 已完成，询问是否取消
+    if (confirm('确定取消完成该任务吗？积分会被扣除。')) {
+      const q = DAILY_QUESTS.find(x => x.id === id);
+      state.quests[id] = false;
+      addPoints(-q.pts, '取消任务');
+      save();
+      renderQuests();
+      updateDaddy();
+    }
+  } else {
+    // 未完成 → 打开上传弹窗
+    openCompleteModal(id);
+  }
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -604,6 +795,7 @@ function load() {
     state.hairCount = 0;
     state.laundryCount = 0;
     state.hairWeek = wk;
+    state.weekly = 'pending';
   }
 
   if (!state.timedId || !state.timedStart) startNewTimed();
@@ -652,6 +844,25 @@ function applyDayChange(prevDate) {
     state.penalties = state.penalties.filter(p => p.status !== 'done');
     state.rewards = state.rewards.filter(r => r.status !== 'done');
 
+    if (state.weekly === 'done80') {
+      state.rewards.push({ text: '作业已交≥80% → 一顿好饭', status: 'wait', fromWeekly: true });
+      state.stats.weekly_good_count = (state.stats.weekly_good_count || 0) + 1;
+      notifyReward('作业已交≥80% → 一顿好饭');
+      showToast('周日结算：作业优秀，奖励「一顿好饭」已加入');
+    } else if (state.weekly === 'doneLow') {
+      state.penalties.push({ text: '作业已交≤80% → 打手心', status: 'wait', fromWeekly: true });
+      notifyPenalty('作业已交≤80% → 打手心');
+      showToast('周日结算：已记录惩罚「打手心」');
+    } else if (state.weekly === 'dueLow') {
+      state.penalties.push({ text: 'Passed Due <80% → 屁股开大花', status: 'wait', fromWeekly: true });
+      notifyPenalty('Passed Due <80% → 屁股开大花');
+      showToast('周日结算：已记录惩罚「屁股开大花」');
+    } else if (state.weekly === 'dueHigh') {
+      state.penalties.push({ text: 'Passed Due >80% → 屁股开花', status: 'wait', fromWeekly: true });
+      notifyPenalty('Passed Due >80% → 屁股开花');
+      showToast('周日结算：已记录惩罚「屁股开花」');
+    }
+
     if (state.hairCount < HAIR_NEED) {
       state.points = Math.max(0, state.points - 20);
       state.penalties.push({ text: `【周日23:59】本周洗头未达标，倒扣 -20pt`, status: 'done', auto: true });
@@ -673,7 +884,6 @@ function applyDayChange(prevDate) {
   state.streak = doneMand > 0 ? (state.streak || 0) + 1 : 0;
   state.stats.streak = state.streak;
 
-  // 跨天结算通知
   notifyDaySettle(`昨日必做完成 ${doneMand}/${mandatories.length} 项\n当前积分：${state.points} pt\n昨日总评：${state.yesterdayScore}\n段位：${getRankInfo().current.display}`);
 
   settleAchievements();
@@ -763,10 +973,10 @@ function renderQuests() {
 function renderWeekly() {
   const map = {
     pending:  ['⏳ 本周待汇报', 'ws-pending'],
-    done80:   ['✅ 已交≥80% · 一顿好饭', 'ws-done'],
-    doneLow:  ['⚠️ 已交≤80% · 打手心', 'ws-fail'],
-    dueLow:   ['🔴 Passed Due <80% · 屁股开大花', 'ws-fail'],
-    dueHigh:  ['⚠️ Passed Due >80% · 屁股开花', 'ws-fail']
+    done80:   ['📝 已记录：已交≥80%（周日23:59生效）', 'ws-recorded'],
+    doneLow:  ['📝 已记录：已交≤80%（周日23:59生效）', 'ws-recorded'],
+    dueLow:   ['📝 已记录：Passed Due <80%（周日23:59生效）', 'ws-recorded'],
+    dueHigh:  ['📝 已记录：Passed Due >80%（周日23:59生效）', 'ws-recorded']
   };
   const [text, cls] = map[state.weekly] || map.pending;
   const el = document.getElementById('weeklyStatus');
@@ -857,65 +1067,14 @@ function updateDaddy() {
     `必做 ${doneMand}/${mandatories.length} · 【${current.display}】· 限时 ${state.timedSuccessCount||0}/${TIMED_MILESTONE}`;
 }
 
-function toggleQuest(id) {
-  const q = DAILY_QUESTS.find(x => x.id === id);
-  if (!q) return;
-  const wasDone = !!state.quests[id];
-  state.quests[id] = !wasDone;
-  if (!wasDone) {
-    addPoints(q.pts, q.name);
-    notifyTask(q.name);   // Discord 通知
-    state.stats.daily_total = (state.stats.daily_total || 0) + 1;
-    if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
-    else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
-    if (id === 'brush_am' || id === 'brush_pm') state.stats.brush_total = (state.stats.brush_total || 0) + 1;
-    if (id === 'brush_am') state.stats.brush_am_total = (state.stats.brush_am_total || 0) + 1;
-    if (id === 'brush_pm') state.stats.brush_pm_total = (state.stats.brush_pm_total || 0) + 1;
-    if (id === 'bath') state.stats.bath_total = (state.stats.bath_total || 0) + 1;
-    if (id === 'water') state.stats.water_total = (state.stats.water_total || 0) + 1;
-    if (id === 'noon_report') state.stats.noon_total = (state.stats.noon_total || 0) + 1;
-    if (id === 'posture') state.stats.posture_total = (state.stats.posture_total || 0) + 1;
-    if (id === 'outfit') state.stats.outfit_total = (state.stats.outfit_total || 0) + 1;
-  } else addPoints(-q.pts, '取消任务');
-
-  const mandatories = DAILY_QUESTS.filter(x => x.mandatory);
-  if (mandatories.every(x => state.quests[x.id]) && !wasDone) {
-    addPoints(12, '必做全勤奖励');
-    state.stats.full_day_count = (state.stats.full_day_count || 0) + 1;
-    if (state.cleanDayFlag) state.stats.clean_days = (state.stats.clean_days || 0) + 1;
-  }
-  const optCount = DAILY_QUESTS.filter(x => !x.mandatory && state.quests[x.id]).length;
-  if (optCount >= 2 && !wasDone) state.stats.both_optional_count = (state.stats.both_optional_count || 0) + 1;
-  if (state.quests['bath'] && state.quests['brush_am'] && state.quests['brush_pm'] && !wasDone)
-    state.stats.bath_brush_combo = (state.stats.bath_brush_combo || 0) + 1;
-
-  save(); renderQuests(); updateDaddy();
-}
-
 function setWeekly(status) {
-  state.penalties = state.penalties.filter(p => !p.fromWeekly);
-  state.rewards = state.rewards.filter(r => !r.fromWeekly);
   state.weekly = status;
   state.cleanDayFlag = false;
-  if (status === 'done80') {
-    state.rewards.push({ text: '作业已交≥80% → 一顿好饭', status: 'wait', fromWeekly: true });
-    state.stats.weekly_good_count = (state.stats.weekly_good_count || 0) + 1;
-    showToast('作业优秀，奖励已加入队列');
-    notifyReward('作业已交≥80% → 一顿好饭');
-  } else if (status === 'doneLow') {
-    state.penalties.push({ text: '作业已交≤80% → 打手心', status: 'wait', fromWeekly: true });
-    showToast('已记录惩罚：打手心');
-    notifyPenalty('作业已交≤80% → 打手心');
-  } else if (status === 'dueLow') {
-    state.penalties.push({ text: 'Passed Due <80% → 屁股开大花', status: 'wait', fromWeekly: true });
-    showToast('已记录惩罚：屁股开大花');
-    notifyPenalty('Passed Due <80% → 屁股开大花');
-  } else if (status === 'dueHigh') {
-    state.penalties.push({ text: 'Passed Due >80% → 屁股开花', status: 'wait', fromWeekly: true });
-    showToast('已记录惩罚：屁股开花');
-    notifyPenalty('Passed Due >80% → 屁股开花');
-  }
-  save(); renderWeekly(); renderRewards(); renderPenalties(); updateDaddy();
+  save();
+  renderWeekly();
+  if (status === 'reset') showToast('已重置本周作业选择');
+  else showToast('已记录本周选择，奖罚将在周日23:59正式生效');
+  updateDaddy();
 }
 
 function addHairWash() {
