@@ -57,6 +57,15 @@
   }
   .section-title.clickable { cursor: pointer; user-select: none; }
   .section-title .toggle { margin-left: auto; font-size: 12px; color: var(--neon-cyan); }
+  .daily-countdown {
+    background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.25);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .daily-countdown-label { font-size: 12px; color: var(--muted); }
+  .daily-countdown-time {
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--neon-cyan);
+  }
   .quest {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 11px; margin-bottom: 7px; display: grid; grid-template-columns: 20px 1fr;
@@ -232,7 +241,6 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* ===== 完成任务二级界面 ===== */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: none;
     justify-content: center; align-items: center; z-index: 200; padding: 16px;
@@ -277,7 +285,6 @@
   }
   .modal-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
   .modal-btn.confirm:not(:disabled):hover { background: rgba(0,255,159,0.18); }
-
   .reward-option {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; font-size: 13px;
@@ -308,6 +315,10 @@
 
   <div class="section">
     <div class="section-title"><span>📋</span> 每日任务（必做扣分×1.75 / 可选不扣分）</div>
+    <div class="daily-countdown">
+      <span class="daily-countdown-label">今日任务截止</span>
+      <span class="daily-countdown-time" id="dailyCountdown">--:--:--</span>
+    </div>
     <div id="questList"></div>
   </div>
 
@@ -333,24 +344,24 @@
     </div>
     <div class="weekly-card">
       <div class="weekly-title">每周洗头（只需 1 次）</div>
-      <div class="weekly-desc">本周已完成 <span id="hairCount">0</span> / 1 次</div>
+      <div class="weekly-desc">本周已完成 <span id="hairCount">0</span> / 1 次 · 需上传照片</div>
       <div class="weekly-rules">
         每次完成 <b>+12 pt</b><br>
         周日23:59前未完成倒扣 <b>-20 pt</b>
       </div>
       <div class="weekly-btns">
-        <button class="wbtn" onclick="addHairWash()">+1 次洗头打卡</button>
+        <button class="wbtn" onclick="openProofModal('hair')">+1 次洗头打卡（需照片）</button>
       </div>
     </div>
     <div class="weekly-card">
       <div class="weekly-title">每周洗衣服（只需 1 次）</div>
-      <div class="weekly-desc">本周已完成 <span id="laundryCount">0</span> / 1 次</div>
+      <div class="weekly-desc">本周已完成 <span id="laundryCount">0</span> / 1 次 · 需上传照片</div>
       <div class="weekly-rules">
         完成 <b>+10 pt</b><br>
         周日23:59前未完成倒扣 <b>-15 pt</b>
       </div>
       <div class="weekly-btns">
-        <button class="wbtn" onclick="addLaundry()">+1 次洗衣打卡</button>
+        <button class="wbtn" onclick="openProofModal('laundry')">+1 次洗衣打卡（需照片）</button>
       </div>
     </div>
   </div>
@@ -363,12 +374,12 @@
         <div class="countdown" id="countdown">03:00:00</div>
       </div>
       <div class="timed-desc" id="timedDesc">—</div>
-      <div class="timed-pts">成功完成 +30 pt · 超时不扣分无惩罚</div>
+      <div class="timed-pts">成功完成 +30 pt · 超时不扣分无惩罚 · 需上传照片</div>
       <div class="timed-progress-text">本轮已进行 <span id="progressText">0%</span></div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       <div class="progress-labels"><span>开始</span><span>3小时</span></div>
       <div class="timed-actions">
-        <button class="tbtn success" id="successBtn" onclick="completeTimed()">标记挑战成功</button>
+        <button class="tbtn success" id="successBtn" onclick="openProofModal('timed')">标记挑战成功（需照片）</button>
       </div>
     </div>
     <div class="milestone" id="milestoneBox">
@@ -423,16 +434,16 @@
   <div class="footer-bar"></div>
 </div>
 
-<!-- 完成任务二级界面 -->
+<!-- 通用证据上传弹窗 -->
 <div class="modal-overlay" id="completeModal">
   <div class="modal">
-    <div class="modal-title">完成任务确认</div>
+    <div class="modal-title">完成确认 · 需上传证据</div>
     <div class="modal-task-name" id="completeTaskName">—</div>
-    <div class="modal-desc">请上传证明照片后才能完成任务<br>可填写补充说明（选填）</div>
+    <div class="modal-desc">请从相册选择或拍摄照片后才能完成<br>可填写补充说明（选填）</div>
 
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-hint" id="uploadHint">📷 点击选择 / 拍摄照片</div>
-      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="onFileSelected(event)">
+      <div class="upload-hint" id="uploadHint">📷 点击从相册选择 / 拍摄照片</div>
+      <input type="file" id="fileInput" accept="image/*" onchange="onFileSelected(event)">
       <img class="upload-preview" id="uploadPreview" alt="预览">
     </div>
 
@@ -446,7 +457,6 @@
   </div>
 </div>
 
-<!-- 奖励选择界面 -->
 <div class="modal-overlay" id="rewardModal">
   <div class="modal">
     <div class="modal-title" id="modalTitle">向老公提出自选奖励</div>
@@ -462,7 +472,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = 'dsQuestPanel_PROD_v4';
+const STORAGE_KEY = 'dsQuestPanel_PROD_v5';
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1545585375379197995/q8Fu6B8fkq3S9VP2DOFrKTQYaPBfq7bc7ezNT8tkfl8jBrKdKDgPHTDsC-2mtH2WvEom";
 
 async function sendDiscord(content, file = null) {
@@ -523,14 +533,27 @@ const RANK_DEFS = (() => {
   return tiers;
 })();
 
-const DAILY_QUESTS = [
+// 必做任务（固定）
+const MANDATORY_QUESTS = [
   { id: 'brush_am', name: '晨间刷牙打卡', desc: '起床后刷牙并上传带当天日期时间的自拍证明。', pts: 4, mandatory: true, reward: '+4pt · 未完成扣×1.75' },
   { id: 'brush_pm', name: '晚间刷牙打卡', desc: '睡前刷牙并上传带当天日期时间的自拍证明。', pts: 4, mandatory: true, reward: '+4pt · 未完成扣×1.75' },
   { id: 'water', name: '每日饮水（至少一瓶）', desc: '今日至少喝完一瓶水，可拍照打卡。', pts: 6, mandatory: true, reward: '+6pt · 未完成扣×1.75' },
   { id: 'noon_report', name: '午间定时汇报', desc: '12:00–13:00 汇报当前位置 + 本餐吃饭量。', pts: 2, mandatory: true, reward: '+2pt · 未完成扣×1.75' },
-  { id: 'bath', name: '洗澡打卡', desc: '完成后上传出浴照片，照片需附上当日日期。', pts: 8, mandatory: true, reward: '+8pt · 未完成扣×1.75' },
-  { id: 'posture', name: '玄关姿态检查', desc: '每次进出家门前跪姿在全身镜前自拍一张作为证据（可不露脸）。', pts: 6, mandatory: false, reward: '可选 · 完成 +6pt，不完成不扣分' },
-  { id: 'outfit', name: '着装与道具携带', desc: '自行选择一个道具佩戴并上传佩戴照片。', pts: 10, mandatory: false, reward: '可选 · 完成 +10pt，不完成不扣分' }
+  { id: 'bath', name: '洗澡打卡', desc: '完成后上传出浴照片，照片需附上当日日期。', pts: 8, mandatory: true, reward: '+8pt · 未完成扣×1.75' }
+];
+
+// 可选任务池（10个，异地友好、纪律向、无性）
+const OPTIONAL_POOL = [
+  { id: 'opt_focus', name: '专注学习/工作', desc: '完成至少30分钟专注学习或工作，上传证明。', pts: 8 },
+  { id: 'opt_exercise', name: '居家运动打卡', desc: '完成散步或居家运动，拍照证明。', pts: 7 },
+  { id: 'opt_tidy', name: '整理个人空间', desc: '整理床铺/桌面/房间一处，拍照对比。', pts: 6 },
+  { id: 'opt_read', name: '阅读/听播客', desc: '阅读或听播客至少20分钟，并汇报内容要点。', pts: 6 },
+  { id: 'opt_meal', name: '规律用餐打卡', desc: '按时吃正餐并拍照，避免暴饮暴食。', pts: 5 },
+  { id: 'opt_sleep', name: '早睡准备', desc: '在约定时间前开始准备睡觉并汇报。', pts: 6 },
+  { id: 'opt_kneel', name: '跪姿训练', desc: '在镜子前跪下额头贴地自拍并上传', pts: 5 },
+  { id: 'opt_chore', name: '完成一项家务', desc: '完成一件被拖延的家务并拍照。', pts: 7 },
+  { id: 'opt_gratitude', name: '感恩三件事', desc: '写下今日三件感恩的事并发送给老公。', pts: 5 }
+  { id: 'opt_closet', name: '整理衣柜', desc: '把衣柜的衣服整理干净并拍照。', pts: 10 }
 ];
 
 const TIMED_POOL = [
@@ -541,9 +564,9 @@ const TIMED_POOL = [
   { id: 'silence', name: '禁言服从', desc: '除必要汇报外禁止主动发消息/说话，只能回复老公指令。' },
   { id: 'ice', name: '冰块忍耐', desc: '按指令使用冰块进行指定部位忍耐，并实时文字描述感受。' },
   { id: 'writing', name: '服从书写', desc: '手写指定服从语句并拍照上传（可不露脸）。' },
-  { id: 'voice', name: '语音汇报感受', desc: '定时用语音向老公详细汇报当前身体与心理状态。' },
+  { id: 'voice', name: '语音汇报感受', desc: '定时用语音向老公详细汇报当前身体与心理感受或状态。' },
   { id: 'deny', name: '寸止反复练习', desc: '完成指定次数的寸止循环，每次汇报并等待下一步指令。' },
-  { id: 'posture_home', name: '居家姿态保持', desc: '在指定时间内保持规定姿势（跪/趴等），随时接受视频检查。' }
+  { id: 'posture_home', name: '居家姿态保持', desc: '在任务时间内保持规定姿势（跪/宠物趴/露胸等），随时接受视频检查。' }
 ];
 
 const HIGH_REWARDS = [
@@ -567,8 +590,6 @@ const ACHIEVEMENTS = [
   { id: 'bath_ritual', name: '沐浴仪式', cond: '完成洗澡打卡', type: 'bath_total', thresholds: [3, 10, 25, 50] },
   { id: 'water_keeper', name: '补水使者', cond: '完成饮水打卡', type: 'water_total', thresholds: [3, 10, 25, 50] },
   { id: 'report_on_time', name: '准时汇报', cond: '完成午间汇报', type: 'noon_total', thresholds: [3, 10, 25, 50] },
-  { id: 'posture_grace', name: '姿态优雅', cond: '完成玄关检查', type: 'posture_total', thresholds: [3, 10, 25, 50] },
-  { id: 'prop_user', name: '道具实践', cond: '完成道具佩戴', type: 'outfit_total', thresholds: [3, 10, 25, 50] },
   { id: 'timed_rookie', name: '挑战新星', cond: '限时挑战成功', type: 'timed_total', thresholds: [3, 10, 25, 50] },
   { id: 'timed_veteran', name: '十连勇者', cond: '累计限时成功次数', type: 'timed_total', thresholds: [10, 25, 50, 100] },
   { id: 'hair_care', name: '秀发管理', cond: '洗头打卡次数', type: 'hair_total', thresholds: [2, 6, 15, 30] },
@@ -582,7 +603,9 @@ const ACHIEVEMENTS = [
   { id: 'reward_collector', name: '奖励收藏家', cond: '领取奖励次数', type: 'reward_claimed', thresholds: [1, 3, 8, 20] },
   { id: 'penalty_endurer', name: '惩罚承受者', cond: '结算惩罚次数', type: 'penalty_settled', thresholds: [1, 3, 8, 20] },
   { id: 'early_bird', name: '晨间战士', cond: '完成晨间刷牙次数', type: 'brush_am_total', thresholds: [3, 10, 25, 50] },
-  { id: 'night_owl', name: '夜间守则', cond: '完成晚间刷牙次数', type: 'brush_pm_total', thresholds: [3, 10, 25, 50] }
+  { id: 'night_owl', name: '夜间守则', cond: '完成晚间刷牙次数', type: 'brush_pm_total', thresholds: [3, 10, 25, 50] },
+  { id: 'opt_collector', name: '可选收集者', cond: '完成可选任务次数', type: 'optional_total', thresholds: [5, 15, 30, 60] },
+  { id: 'discipline_day', name: '纪律之日', cond: '单日完成必做+两个可选', type: 'full_plus_opt', thresholds: [1, 3, 7, 15] }
 ];
 
 const LEVEL_NAMES = ['铜', '银', '金', '白金'];
@@ -595,34 +618,43 @@ const DEDUCT_MULTIPLIER = 1.75;
 let state = {
   date: null, points: 0, yesterdayScore: '—',
   quests: {}, weekly: 'pending', hairCount: 0, laundryCount: 0, hairWeek: null,
+  todayOptionalIds: [], // 今日两个可选任务 id
   timedId: null, timedStart: null, timedSuccessThisRound: false, timedSuccessCount: 0,
   ultimateDone: false,
   stats: {
     daily_total: 0, mandatory_total: 0, full_day_count: 0, optional_total: 0, both_optional_count: 0,
-    brush_total: 0, bath_total: 0, water_total: 0, noon_total: 0, posture_total: 0, outfit_total: 0,
+    brush_total: 0, bath_total: 0, water_total: 0, noon_total: 0,
     timed_total: 0, hair_total: 0, laundry_total: 0, weekly_good_count: 0, streak: 0,
     clean_days: 0, bath_brush_combo: 0, reward_claimed: 0, penalty_settled: 0,
-    brush_am_total: 0, brush_pm_total: 0
+    brush_am_total: 0, brush_pm_total: 0, full_plus_opt: 0
   },
   achProgress: {},
   rewards: [], penalties: [],
   streak: 0, lastActiveDate: null, lastDeductDate: null, cleanDayFlag: true
 };
 
-// ===== 完成任务弹窗相关 =====
-let pendingQuestId = null;
+// ===== 证据上传弹窗 =====
+let pendingAction = null; // { type: 'quest'|'hair'|'laundry'|'timed', id?: string }
 let selectedFile = null;
 
-function openCompleteModal(questId) {
-  const q = DAILY_QUESTS.find(x => x.id === questId);
-  if (!q) return;
-  pendingQuestId = questId;
+function openProofModal(type, questId = null) {
+  pendingAction = { type, id: questId };
   selectedFile = null;
-  document.getElementById('completeTaskName').textContent = q.name;
+  let title = '';
+  if (type === 'quest') {
+    const q = getQuestById(questId);
+    title = q ? q.name : '任务';
+  } else if (type === 'hair') title = '每周洗头打卡';
+  else if (type === 'laundry') title = '每周洗衣服打卡';
+  else if (type === 'timed') {
+    const c = TIMED_POOL.find(t => t.id === state.timedId);
+    title = c ? c.name : '限时挑战';
+  }
+  document.getElementById('completeTaskName').textContent = title;
   document.getElementById('noteInput').value = '';
   document.getElementById('fileInput').value = '';
   document.getElementById('uploadPreview').style.display = 'none';
-  document.getElementById('uploadHint').textContent = '📷 点击选择 / 拍摄照片';
+  document.getElementById('uploadHint').textContent = '📷 点击从相册选择 / 拍摄照片';
   document.getElementById('uploadArea').classList.remove('has-file');
   document.getElementById('confirmCompleteBtn').disabled = true;
   document.getElementById('completeModal').classList.add('show');
@@ -630,7 +662,7 @@ function openCompleteModal(questId) {
 
 function closeCompleteModal() {
   document.getElementById('completeModal').classList.remove('show');
-  pendingQuestId = null;
+  pendingAction = null;
   selectedFile = null;
 }
 
@@ -641,7 +673,6 @@ function onFileSelected(e) {
     showToast('请上传图片文件');
     return;
   }
-  // 限制大小（Discord 免费用户约 8MB）
   if (file.size > 7.5 * 1024 * 1024) {
     showToast('图片太大，请压缩后再上传（建议 < 7MB）');
     return;
@@ -656,24 +687,37 @@ function onFileSelected(e) {
 }
 
 async function confirmComplete() {
-  if (!pendingQuestId || !selectedFile) {
+  if (!pendingAction || !selectedFile) {
     showToast('请先上传照片');
     return;
   }
-  const q = DAILY_QUESTS.find(x => x.id === pendingQuestId);
-  if (!q) return;
-
   const btn = document.getElementById('confirmCompleteBtn');
   btn.disabled = true;
   btn.textContent = '上传中...';
 
   const note = document.getElementById('noteInput').value.trim();
-  const content = `✅ **完成任务**：${q.name}\n` +
-                  `积分：+${q.pts} pt\n` +
-                  `当前总分：${state.points + q.pts} pt\n` +
-                  (note ? `备注：${note}` : '备注：无');
+  let content = '';
+  let ok = false;
 
-  const ok = await sendDiscord(content, selectedFile);
+  if (pendingAction.type === 'quest') {
+    const q = getQuestById(pendingAction.id);
+    content = `✅ **完成任务**：${q.name}\n积分：+${q.pts} pt\n当前总分：${state.points + q.pts} pt\n` + (note ? `备注：${note}` : '备注：无');
+    ok = await sendDiscord(content, selectedFile);
+    if (ok) doCompleteQuest(pendingAction.id);
+  } else if (pendingAction.type === 'hair') {
+    content = `🧴 **每周洗头打卡**\n+12 pt\n` + (note ? `备注：${note}` : '备注：无');
+    ok = await sendDiscord(content, selectedFile);
+    if (ok) doAddHair();
+  } else if (pendingAction.type === 'laundry') {
+    content = `👕 **每周洗衣打卡**\n+10 pt\n` + (note ? `备注：${note}` : '备注：无');
+    ok = await sendDiscord(content, selectedFile);
+    if (ok) doAddLaundry();
+  } else if (pendingAction.type === 'timed') {
+    const c = TIMED_POOL.find(t => t.id === state.timedId);
+    content = `🎯 **限时挑战成功**：${c ? c.name : '限时挑战'}\n累计：${(state.timedSuccessCount||0)+1}/10\n` + (note ? `备注：${note}` : '备注：无');
+    ok = await sendDiscord(content, selectedFile);
+    if (ok) doCompleteTimed();
+  }
 
   if (!ok) {
     showToast('上传失败，请检查网络后重试');
@@ -682,40 +726,56 @@ async function confirmComplete() {
     return;
   }
 
-  // 真正完成任务
-  doCompleteQuest(pendingQuestId);
   closeCompleteModal();
   showToast('已完成并上传成功！');
   btn.textContent = '确认完成并上传';
 }
 
-function doCompleteQuest(id) {
-  const q = DAILY_QUESTS.find(x => x.id === id);
-  if (!q || state.quests[id]) return;
+function getQuestById(id) {
+  return MANDATORY_QUESTS.find(q => q.id === id) || OPTIONAL_POOL.find(q => q.id === id);
+}
 
+function getTodayQuests() {
+  const opts = (state.todayOptionalIds || []).map(id => {
+    const o = OPTIONAL_POOL.find(x => x.id === id);
+    return o ? { ...o, mandatory: false, reward: `可选 · 完成 +${o.pts}pt，不完成不扣分` } : null;
+  }).filter(Boolean);
+  return [...MANDATORY_QUESTS, ...opts];
+}
+
+function pickTwoOptional() {
+  const shuffled = [...OPTIONAL_POOL].sort(() => Math.random() - 0.5);
+  return [shuffled[0].id, shuffled[1].id];
+}
+
+function doCompleteQuest(id) {
+  const q = getQuestById(id);
+  if (!q || state.quests[id]) return;
   state.quests[id] = true;
   addPoints(q.pts, q.name);
 
   state.stats.daily_total = (state.stats.daily_total || 0) + 1;
   if (q.mandatory) state.stats.mandatory_total = (state.stats.mandatory_total || 0) + 1;
   else state.stats.optional_total = (state.stats.optional_total || 0) + 1;
+
   if (id === 'brush_am' || id === 'brush_pm') state.stats.brush_total = (state.stats.brush_total || 0) + 1;
   if (id === 'brush_am') state.stats.brush_am_total = (state.stats.brush_am_total || 0) + 1;
   if (id === 'brush_pm') state.stats.brush_pm_total = (state.stats.brush_pm_total || 0) + 1;
   if (id === 'bath') state.stats.bath_total = (state.stats.bath_total || 0) + 1;
   if (id === 'water') state.stats.water_total = (state.stats.water_total || 0) + 1;
   if (id === 'noon_report') state.stats.noon_total = (state.stats.noon_total || 0) + 1;
-  if (id === 'posture') state.stats.posture_total = (state.stats.posture_total || 0) + 1;
-  if (id === 'outfit') state.stats.outfit_total = (state.stats.outfit_total || 0) + 1;
 
-  const mandatories = DAILY_QUESTS.filter(x => x.mandatory);
+  const mandatories = MANDATORY_QUESTS;
   if (mandatories.every(x => state.quests[x.id])) {
     addPoints(12, '必做全勤奖励');
     state.stats.full_day_count = (state.stats.full_day_count || 0) + 1;
     if (state.cleanDayFlag) state.stats.clean_days = (state.stats.clean_days || 0) + 1;
   }
-  const optCount = DAILY_QUESTS.filter(x => !x.mandatory && state.quests[x.id]).length;
-  if (optCount >= 2) state.stats.both_optional_count = (state.stats.both_optional_count || 0) + 1;
+  const optDone = (state.todayOptionalIds || []).filter(oid => state.quests[oid]).length;
+  if (optDone >= 2) state.stats.both_optional_count = (state.stats.both_optional_count || 0) + 1;
+  if (mandatories.every(x => state.quests[x.id]) && optDone >= 2) {
+    state.stats.full_plus_opt = (state.stats.full_plus_opt || 0) + 1;
+  }
   if (state.quests['bath'] && state.quests['brush_am'] && state.quests['brush_pm'])
     state.stats.bath_brush_combo = (state.stats.bath_brush_combo || 0) + 1;
 
@@ -724,12 +784,41 @@ function doCompleteQuest(id) {
   updateDaddy();
 }
 
-// 点击任务：未完成 → 弹窗；已完成 → 可取消
+function doAddHair() {
+  if (state.hairCount >= HAIR_NEED) return;
+  state.hairCount = (state.hairCount || 0) + 1;
+  state.stats.hair_total = (state.stats.hair_total || 0) + 1;
+  addPoints(12, '洗头打卡');
+  save();
+  renderWeekly();
+}
+
+function doAddLaundry() {
+  if (state.laundryCount >= LAUNDRY_NEED) return;
+  state.laundryCount = (state.laundryCount || 0) + 1;
+  state.stats.laundry_total = (state.stats.laundry_total || 0) + 1;
+  addPoints(10, '洗衣打卡');
+  save();
+  renderWeekly();
+}
+
+function doCompleteTimed() {
+  if (state.timedSuccessThisRound) return;
+  const elapsed = Date.now() - (state.timedStart || Date.now());
+  if (elapsed > TIMED_DURATION) return;
+  state.timedSuccessThisRound = true;
+  state.timedSuccessCount = (state.timedSuccessCount || 0) + 1;
+  state.stats.timed_total = (state.stats.timed_total || 0) + 1;
+  addPoints(30, '限时挑战成功');
+  save();
+  renderTimed();
+  updateDaddy();
+}
+
 function toggleQuest(id) {
   if (state.quests[id]) {
-    // 已完成，询问是否取消
     if (confirm('确定取消完成该任务吗？积分会被扣除。')) {
-      const q = DAILY_QUESTS.find(x => x.id === id);
+      const q = getQuestById(id);
       state.quests[id] = false;
       addPoints(-q.pts, '取消任务');
       save();
@@ -737,8 +826,7 @@ function toggleQuest(id) {
       updateDaddy();
     }
   } else {
-    // 未完成 → 打开上传弹窗
-    openCompleteModal(id);
+    openProofModal('quest', id);
   }
 }
 
@@ -778,6 +866,7 @@ function load() {
   });
   if (state.laundryCount == null) state.laundryCount = 0;
   if (state.ultimateDone == null) state.ultimateDone = false;
+  if (!state.todayOptionalIds) state.todayOptionalIds = [];
 
   const today = todayStr();
   if (state.date && state.date !== today) applyDayChange(state.date);
@@ -785,9 +874,14 @@ function load() {
   if (state.date !== today) {
     state.date = today;
     state.quests = {};
-    DAILY_QUESTS.forEach(q => state.quests[q.id] = false);
+    MANDATORY_QUESTS.forEach(q => state.quests[q.id] = false);
+    state.todayOptionalIds = pickTwoOptional();
+    state.todayOptionalIds.forEach(id => state.quests[id] = false);
     state.cleanDayFlag = true;
     state.lastActiveDate = today;
+  } else if (!state.todayOptionalIds || state.todayOptionalIds.length < 2) {
+    state.todayOptionalIds = pickTwoOptional();
+    state.todayOptionalIds.forEach(id => { if (state.quests[id] == null) state.quests[id] = false; });
   }
 
   const wk = weekKeyFromDate(today);
@@ -811,7 +905,7 @@ function applyDayChange(prevDate) {
   if (state.lastDeductDate !== prevDate) {
     let deduct = 0;
     const unfinished = [];
-    DAILY_QUESTS.filter(q => q.mandatory).forEach(q => {
+    MANDATORY_QUESTS.forEach(q => {
       if (!state.quests[q.id]) {
         const d = Math.round(q.pts * DEDUCT_MULTIPLIER);
         deduct += d;
@@ -873,7 +967,7 @@ function applyDayChange(prevDate) {
     }
   }
 
-  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
+  const mandatories = MANDATORY_QUESTS;
   const doneMand = mandatories.filter(q => state.quests[q.id]).length;
   if (doneMand === mandatories.length) state.yesterdayScore = 'S';
   else if (doneMand >= 3) state.yesterdayScore = 'A';
@@ -956,7 +1050,8 @@ function renderRank() {
 }
 
 function renderQuests() {
-  document.getElementById('questList').innerHTML = DAILY_QUESTS.map(q => {
+  const list = getTodayQuests();
+  document.getElementById('questList').innerHTML = list.map(q => {
     const done = !!state.quests[q.id];
     return `<div class="quest ${done ? 'done' : ''} ${q.mandatory ? '' : 'optional'}" onclick="toggleQuest('${q.id}')">
       <div class="checkbox">${done ? '☑' : '☐'}</div>
@@ -1007,6 +1102,7 @@ function renderTimed() {
   const btn = document.getElementById('claimBtn');
   if (count >= TIMED_MILESTONE) { box.classList.add('ready'); btn.disabled = false; }
   else { box.classList.remove('ready'); btn.disabled = true; }
+  document.getElementById('successBtn').disabled = state.timedSuccessThisRound;
 }
 
 function renderRewards() {
@@ -1060,7 +1156,7 @@ function toggleAchievements() {
 }
 
 function updateDaddy() {
-  const mandatories = DAILY_QUESTS.filter(q => q.mandatory);
+  const mandatories = MANDATORY_QUESTS;
   const doneMand = mandatories.filter(q => state.quests[q.id]).length;
   const { current } = getRankInfo();
   document.getElementById('daddyComment').textContent =
@@ -1075,23 +1171,6 @@ function setWeekly(status) {
   if (status === 'reset') showToast('已重置本周作业选择');
   else showToast('已记录本周选择，奖罚将在周日23:59正式生效');
   updateDaddy();
-}
-
-function addHairWash() {
-  if (state.hairCount >= HAIR_NEED) { showToast('本周洗头已完成'); return; }
-  state.hairCount = (state.hairCount || 0) + 1;
-  state.stats.hair_total = (state.stats.hair_total || 0) + 1;
-  addPoints(12, '洗头打卡');
-  notifyTask('每周洗头');
-  save(); renderWeekly();
-}
-function addLaundry() {
-  if (state.laundryCount >= LAUNDRY_NEED) { showToast('本周洗衣已完成'); return; }
-  state.laundryCount = (state.laundryCount || 0) + 1;
-  state.stats.laundry_total = (state.stats.laundry_total || 0) + 1;
-  addPoints(10, '洗衣打卡');
-  notifyTask('每周洗衣服');
-  save(); renderWeekly();
 }
 
 function completeUltimate() {
@@ -1110,21 +1189,21 @@ function resetUltimate() {
   renderUltimate();
 }
 
-function completeTimed() {
-  if (state.timedSuccessThisRound) { showToast('本轮已标记成功'); return; }
-  const elapsed = Date.now() - (state.timedStart || Date.now());
-  if (elapsed > TIMED_DURATION) { showToast('本轮已超时'); return; }
-  state.timedSuccessThisRound = true;
-  state.timedSuccessCount = (state.timedSuccessCount || 0) + 1;
-  state.stats.timed_total = (state.stats.timed_total || 0) + 1;
-  addPoints(30, '限时挑战成功');
-  const challenge = TIMED_POOL.find(t => t.id === state.timedId);
-  notifyTimedSuccess(challenge ? challenge.name : '限时挑战');
-  save(); renderTimed(); updateDaddy();
-  showToast(`挑战成功！累计 ${state.timedSuccessCount}/${TIMED_MILESTONE}`);
+function updateDailyCountdown() {
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  let diff = end - now;
+  if (diff < 0) diff = 0;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('dailyCountdown').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 function updateCountdown() {
+  updateDailyCountdown();
   const now = Date.now();
   let start = state.timedStart || now;
   let elapsed = now - start;
@@ -1147,7 +1226,7 @@ function updateCountdown() {
   }
   document.getElementById('progressFill').style.width = pct.toFixed(1) + '%';
   document.getElementById('progressText').textContent = pct.toFixed(0) + '%';
-  document.getElementById('successBtn').disabled = state.timedSuccessThisRound || elapsed >= TIMED_DURATION;
+  document.getElementById('successBtn').disabled = !!state.timedSuccessThisRound || elapsed >= TIMED_DURATION;
 }
 
 function getStatValue(type) {
