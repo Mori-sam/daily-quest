@@ -472,28 +472,50 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = 'dsQuestPanel_PROD_v5';
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1551752142149259295/fF7ie95GxH4PG2kHxMOFEBjdEzE6Apm-1SIiGUtTLhDJ4ocTXMkfcawxizR1K2UycV7i";
+const STORAGE_KEY = 'dsQuestPanel_PROD_v7';
 
+// ===== 邮箱汇报（Formspree → Gmail）=====
+// 1. 打开 https://formspree.io 用 morishimatomoko@gmail.com 注册/登录
+// 2. New Form → 得到类似 https://formspree.io/f/xxxxxxxx 的地址
+// 3. 把下面 FORMSPREE_ID 换成 xxxxxxxx（只填 id，不要整段 URL）
+const FORMSPREE_ID = '在这里填Formspree的ID';
+const REPORT_EMAIL = 'morishimatomoko@gmail.com';
+
+/**
+ * 发送任务汇报到邮箱（文字 + 可选图片）
+ * 使用 Formspree 免费中转，不经过 Discord
+ */
 async function sendDiscord(content, file = null) {
-  if (!DISCORD_WEBHOOK) return false;
+  // 函数名仍叫 sendDiscord，避免改动全文件调用处；实际发往邮箱
+  if (!FORMSPREE_ID || FORMSPREE_ID.includes('在这里填')) {
+    console.error('请先配置 FORMSPREE_ID（见代码顶部注释）');
+    alert('尚未配置邮箱汇报：请在代码里填入 Formspree ID');
+    return false;
+  }
   try {
+    const formData = new FormData();
+    formData.append('_subject', '【任务面板】汇报');
+    formData.append('email', REPORT_EMAIL);
+    formData.append('message', String(content || ''));
+    formData.append('_replyto', REPORT_EMAIL);
     if (file) {
-      const formData = new FormData();
-      formData.append('content', content);
-      formData.append('file', file, file.name || 'proof.jpg');
-      const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', body: formData });
-      return res.ok;
-    } else {
-      const res = await fetch(DISCORD_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, username: '调教任务面板' })
-      });
-      return res.ok;
+      formData.append('attachment', file, file.name || 'proof.jpg');
     }
+
+    const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      console.error('邮件发送失败', res.status, t);
+      return false;
+    }
+    return true;
   } catch (e) {
-    console.log('Discord发送失败', e);
+    console.error('邮件发送失败', e);
     return false;
   }
 }
